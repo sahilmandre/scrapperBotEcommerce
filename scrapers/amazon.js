@@ -1,7 +1,10 @@
 // scrapers/amazon.js
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { calculateDiscount } from "../utils/helpers.js";
+import {
+  calculateDiscount,
+  saveDealsToPlatformFile,
+} from "../utils/helpers.js";
 
 import { urls } from "../config/urls.js";
 
@@ -54,6 +57,10 @@ export async function scrapeAmazon() {
 
     console.log(`✅ Found ${products.length} products from: ${url}`);
     allProducts.push(...products);
+  }
+
+  if (allProducts.length > 0) {
+    saveDealsToPlatformFile("amazon", allProducts);
   }
 
   return allProducts;

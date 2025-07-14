@@ -1,9 +1,13 @@
 // scrapers/flipkart.js
-import puppeteer from "puppeteer";
-import { calculateDiscount, cleanText } from "../utils/helpers.js";
-import { urls } from "../config/urls.js";
-import dotenv from "dotenv";
 import chalk from "chalk";
+import dotenv from "dotenv";
+import puppeteer from "puppeteer";
+import { urls } from "../config/urls.js";
+import {
+  calculateDiscount,
+  cleanText,
+  saveDealsToPlatformFile,
+} from "../utils/helpers.js";
 
 dotenv.config();
 
@@ -80,5 +84,9 @@ export async function scrapeFlipkart() {
 
   await browser.close();
 
-  return results; // ✅ Needed by /api/scrape/flipkart
+  if (results.length > 0) {
+    saveDealsToPlatformFile("flipkart", results);
+  }
+
+  return results;
 }
