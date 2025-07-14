@@ -1,6 +1,7 @@
 // scrapers/amazon.js
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { calculateDiscount } from "../utils/helpers.js";
 
 import { urls } from "../config/urls.js";
 
@@ -34,6 +35,9 @@ export async function scrapeAmazon() {
         .first()
         .text()
         .trim();
+      const priceNum = parseInt(price.replace(/[₹,]/g, ""));
+      const mrpNum = parseInt(mrp.replace(/[₹,]/g, ""));
+      const discount = calculateDiscount(priceNum, mrpNum);
 
       if (title && price && link) {
         products.push({
@@ -43,6 +47,7 @@ export async function scrapeAmazon() {
           price,
           mrp,
           link,
+          discount,
         });
       }
     });
