@@ -2,7 +2,6 @@
 import puppeteer from "puppeteer";
 import { calculateDiscount, cleanText } from "../utils/helpers.js";
 import { urls } from "../config/urls.js";
-import fs from "fs";
 import dotenv from "dotenv";
 import chalk from "chalk";
 
@@ -11,17 +10,16 @@ dotenv.config();
 const threshold = parseInt(process.env.DISCOUNT_THRESHOLD || "90");
 const headless = process.env.HEADLESS !== "false";
 
-export async function scrapeFlipkartDeals() {
+export async function scrapeFlipkart() {
   const browser = await puppeteer.launch({ headless });
   const page = await browser.newPage();
 
   const results = [];
 
-  for (let url of urls) {
-    const typeMatch = url.match(/q=([^&]+)/);
-    const type = typeMatch ? decodeURIComponent(typeMatch[1]) : "unknown";
-
-    console.log(chalk.blue(`🔍 Scraping: ${url}`));
+  for (let { url, type, platform } of urls.filter(
+    (u) => u.platform === "flipkart"
+  )) {
+    console.log(chalk.blue(`🔍 Scraping [${type}]: ${url}`));
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
     const products = await page.evaluate(() => {
@@ -57,23 +55,16 @@ export async function scrapeFlipkartDeals() {
       const mrp = parseInt(cleanText(item.mrp));
       const discount = calculateDiscount(price, mrp);
 
-      if (!isNaN(discount)) {
-        console.log(
-          chalk.gray(
-            `📦 ${item.title} | ₹${price} / ₹${mrp} → ${discount}% off`
-          )
-        );
-      }
-
       if (discount >= threshold) {
         console.log(chalk.green(`🔥 DEAL: ${item.title} — ${discount}% OFF`));
         results.push({
+          platform: "flipkart",
+          type,
           title: item.title,
           price,
           mrp,
           discount,
           productUrl: item.productUrl,
-          type, // ✅ add this!
         });
       }
     }
@@ -81,14 +72,5 @@ export async function scrapeFlipkartDeals() {
 
   await browser.close();
 
-  if (results.length > 0) {
-    fs.writeFileSync("results/flipkart.json", JSON.stringify(results, null, 2));
-    console.log(
-      chalk.yellowBright(
-        `✅ ${results.length} deals saved to results/flipkart.json`
-      )
-    );
-  } else {
-    console.log(chalk.red(`❌ No qualifying deals found.`));
-  }
+  return results; // ✅ This is critical for the Express API to work
 }
