@@ -18,6 +18,9 @@ export async function scrapeFlipkartDeals() {
   const results = [];
 
   for (let url of urls) {
+    const typeMatch = url.match(/q=([^&]+)/);
+    const type = typeMatch ? decodeURIComponent(typeMatch[1]) : "unknown";
+
     console.log(chalk.blue(`🔍 Scraping: ${url}`));
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
@@ -65,11 +68,12 @@ export async function scrapeFlipkartDeals() {
       if (discount >= threshold) {
         console.log(chalk.green(`🔥 DEAL: ${item.title} — ${discount}% OFF`));
         results.push({
-          ...item,
+          title: item.title,
           price,
           mrp,
           discount,
-          url,
+          productUrl: item.productUrl,
+          type, // ✅ add this!
         });
       }
     }
