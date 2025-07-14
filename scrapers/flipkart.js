@@ -21,27 +21,31 @@ export async function scrapeFlipkartDeals() {
     console.log(chalk.blue(`🔍 Scraping: ${url}`));
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-  const products = await page.evaluate(() => {
-  const cards = document.querySelectorAll("a.WKTcLC, a.IRpwTa"); // New selectors
-  const items = [];
+    const products = await page.evaluate(() => {
+      const anchors = document.querySelectorAll("a.WKTcLC, a.IRpwTa");
+      const items = [];
 
-  cards.forEach((card) => {
-    const title = card?.innerText;
-    const price = card
-      ?.closest(".hCKiGj")
-      ?.querySelector(".Nx9bqj")?.innerText;
-    const mrp = card
-      ?.closest(".hCKiGj")
-      ?.querySelector(".yRaY8j")?.innerText;
+      anchors.forEach((anchor) => {
+        const title = anchor?.innerText?.trim();
+        const href = anchor?.getAttribute("href");
+        const productUrl = href?.startsWith("http")
+          ? href
+          : "https://www.flipkart.com" + href;
 
-    if (title && price && mrp) {
-      items.push({ title, price, mrp });
-    }
-  });
+        const price = anchor
+          ?.closest(".hCKiGj")
+          ?.querySelector(".Nx9bqj")?.innerText;
+        const mrp = anchor
+          ?.closest(".hCKiGj")
+          ?.querySelector(".yRaY8j")?.innerText;
 
-  return items;
-});
+        if (title && price && mrp && href) {
+          items.push({ title, price, mrp, productUrl });
+        }
+      });
 
+      return items;
+    });
 
     console.log(chalk.gray(`🧪 Found ${products.length} product entries`));
 
@@ -51,7 +55,11 @@ export async function scrapeFlipkartDeals() {
       const discount = calculateDiscount(price, mrp);
 
       if (!isNaN(discount)) {
-        console.log(chalk.gray(`📦 ${item.title} | ₹${price} / ₹${mrp} → ${discount}% off`));
+        console.log(
+          chalk.gray(
+            `📦 ${item.title} | ₹${price} / ₹${mrp} → ${discount}% off`
+          )
+        );
       }
 
       if (discount >= threshold) {
@@ -71,7 +79,11 @@ export async function scrapeFlipkartDeals() {
 
   if (results.length > 0) {
     fs.writeFileSync("results/flipkart.json", JSON.stringify(results, null, 2));
-    console.log(chalk.yellowBright(`✅ ${results.length} deals saved to results/flipkart.json`));
+    console.log(
+      chalk.yellowBright(
+        `✅ ${results.length} deals saved to results/flipkart.json`
+      )
+    );
   } else {
     console.log(chalk.red(`❌ No qualifying deals found.`));
   }
