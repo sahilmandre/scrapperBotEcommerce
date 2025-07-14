@@ -23,7 +23,10 @@ export async function scrapeAmazon() {
 
       $("div[data-asin]:has(h2)").each((_, el) => {
         const title = $(el).find("h2 span").text().trim();
-        const link = "https://www.amazon.in" + $(el).find("h2 a").attr("href");
+        const href = $(el).find("a.a-link-normal").attr("href");
+        const link = href?.startsWith("http")
+          ? href
+          : `https://www.amazon.in${href}`;
         const price = $(el).find(".a-price .a-offscreen").first().text().trim();
         const mrp = $(el)
           .find(".a-price.a-text-price .a-offscreen")
@@ -31,7 +34,7 @@ export async function scrapeAmazon() {
           .text()
           .trim();
 
-        if (title && price) {
+        if (title && price && link) {
           products.push({
             platform: "amazon",
             title,

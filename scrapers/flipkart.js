@@ -55,6 +55,14 @@ export async function scrapeFlipkart() {
       const mrp = parseInt(cleanText(item.mrp));
       const discount = calculateDiscount(price, mrp);
 
+      if (!isNaN(discount)) {
+        console.log(
+          chalk.gray(
+            `📦 ${item.title} | ₹${price} / ₹${mrp} → ${discount}% off`
+          )
+        );
+      }
+
       if (discount >= threshold) {
         console.log(chalk.green(`🔥 DEAL: ${item.title} — ${discount}% OFF`));
         results.push({
@@ -72,5 +80,5 @@ export async function scrapeFlipkart() {
 
   await browser.close();
 
-  return results; // ✅ This is critical for the Express API to work
+  return results; // ✅ Needed by /api/scrape/flipkart
 }
