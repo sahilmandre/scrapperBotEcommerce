@@ -5,35 +5,45 @@ import path from "path";
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  const filePath = path.resolve("results", "flipkart.json");
-
+function readDeals(filePath) {
   try {
-    const data = fs.readFileSync(filePath, "utf-8");
-    let deals = JSON.parse(data);
-
-    const { type, minDiscount } = req.query;
-
-    // Filter by type
-    if (type) {
-      deals = deals.filter((deal) =>
-        deal.type.toLowerCase() === type.toLowerCase()
-      );
-    }
-
-    // Filter by minimum discount
-    if (minDiscount) {
-      const threshold = parseInt(minDiscount);
-      if (!isNaN(threshold)) {
-        deals = deals.filter((deal) => deal.discount >= threshold);
-      }
-    }
-
-    res.json(deals);
+    const fullPath = path.resolve("results", filePath);
+    const data = fs.readFileSync(fullPath, "utf-8");
+    return JSON.parse(data);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "❌ Failed to load deals" });
+    console.warn(`⚠️ Could not read ${filePath}:`, err.message);
+    return [];
   }
+}
+
+router.get("/", (req, res) => {
+  const amazonDeals = readDeals("amazondeals.json");
+  const flipkartDeals = readDeals("flipkartdeals.json");
+
+  let deals = [...amazonDeals, ...flipkartDeals];
+
+  const { platform, type, minDiscount } = req.query;
+
+  if (platform) {
+    deals = deals.filter(
+      (deal) => deal.platform?.toLowerCase() === platform.toLowerCase()
+    );
+  }
+
+  if (type) {
+    deals = deals.filter(
+      (deal) => deal.type?.toLowerCase() === type.toLowerCase()
+    );
+  }
+
+  if (minDiscount) {
+    const threshold = parseInt(minDiscount);
+    if (!isNaN(threshold)) {
+      deals = deals.filter((deal) => deal.discount >= threshold);
+    }
+  }
+
+  res.json(deals);
 });
 
 export default router;
