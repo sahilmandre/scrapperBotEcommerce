@@ -52,6 +52,8 @@ export async function scrapeFlipkart() {
       return items;
     });
 
+    console.log(`🔍 Scraping ${platform.toUpperCase()} [${type}] → ${url}`);
+
     console.log(chalk.gray(`🧪 Found ${products.length} product entries`));
 
     for (let item of products) {

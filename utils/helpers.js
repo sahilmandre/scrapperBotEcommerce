@@ -31,3 +31,14 @@ export function saveDealsToPlatformFile(platform, newDeals) {
   fs.writeFileSync(filePath, JSON.stringify(unique, null, 2), "utf-8");
   return unique.length;
 }
+
+
+export function generateUrls(types) {
+  const amazonBase = "https://www.amazon.in/s?k=";
+  const flipkartBase = "https://www.flipkart.com/search?q=";
+
+  return types.flatMap((type) => [
+    { url: `${amazonBase}${type}`, type, platform: "amazon" },
+    { url: `${flipkartBase}${type}`, type, platform: "flipkart" },
+  ]);
+}
