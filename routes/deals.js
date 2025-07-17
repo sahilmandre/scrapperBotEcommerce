@@ -5,45 +5,41 @@ import path from "path";
 
 const router = express.Router();
 
-function readDeals(filePath) {
-  try {
-    const fullPath = path.resolve("results", filePath);
-    const data = fs.readFileSync(fullPath, "utf-8");
-    return JSON.parse(data);
-  } catch (err) {
-    console.warn(`⚠️ Could not read ${filePath}:`, err.message);
-    return [];
-  }
-}
-
 router.get("/", (req, res) => {
-  const amazonDeals = readDeals("amazondeals.json");
-  const flipkartDeals = readDeals("flipkartdeals.json");
+  const amazonPath = path.resolve("results", "amazonDeals.json");
+  const flipkartPath = path.resolve("results", "flipkartDeals.json");
 
-  let deals = [...amazonDeals, ...flipkartDeals];
+  try {
+    const amazonData = fs.existsSync(amazonPath)
+      ? JSON.parse(fs.readFileSync(amazonPath, "utf-8"))
+      : [];
 
-  const { platform, type, minDiscount } = req.query;
+    const flipkartData = fs.existsSync(flipkartPath)
+      ? JSON.parse(fs.readFileSync(flipkartPath, "utf-8"))
+      : [];
 
-  if (platform) {
-    deals = deals.filter(
-      (deal) => deal.platform?.toLowerCase() === platform.toLowerCase()
-    );
-  }
+    let deals = [...amazonData, ...flipkartData];
 
-  if (type) {
-    deals = deals.filter(
-      (deal) => deal.type?.toLowerCase() === type.toLowerCase()
-    );
-  }
+    const { type, minDiscount } = req.query;
 
-  if (minDiscount) {
-    const threshold = parseInt(minDiscount);
-    if (!isNaN(threshold)) {
-      deals = deals.filter((deal) => deal.discount >= threshold);
+    if (type) {
+      deals = deals.filter(
+        (deal) => deal.type?.toLowerCase() === type.toLowerCase()
+      );
     }
-  }
 
-  res.json(deals);
+    if (minDiscount) {
+      const threshold = parseInt(minDiscount);
+      if (!isNaN(threshold)) {
+        deals = deals.filter((deal) => deal.discount >= threshold);
+      }
+    }
+
+    res.json(deals);
+  } catch (err) {
+    console.error("❌ Failed to load deals:", err.message);
+    res.status(500).json({ error: "Failed to load deals" });
+  }
 });
 
 export default router;

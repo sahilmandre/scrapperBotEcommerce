@@ -1,1 +1,9 @@
-export const productTypes = ["petticoat", "kurti", "saree", "jeans", "tops"];
+export const productTypes = [
+  "gadgets",
+  "coolers",
+  "saree",
+  "jeans",
+  "tops",
+  "shirts+for+men+branded",
+  "shirts+for+men+casual",
+];
