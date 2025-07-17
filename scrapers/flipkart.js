@@ -6,8 +6,7 @@ import { urls } from "../config/urls.js";
 import {
   calculateDiscount,
   cleanText,
-  saveDealsToMongo,
-  saveDealsToPlatformFile,
+  saveDealsToMongo
 } from "../utils/helpers.js";
 
 dotenv.config();
@@ -80,6 +79,7 @@ export async function scrapeFlipkart() {
           mrp,
           discount,
           productUrl: item.productUrl,
+          scrapedAt: new Date(),
         });
       }
     }
@@ -100,6 +100,8 @@ export async function scrapeFlipkart() {
   if (cleanedResults.length > 0) {
     await saveDealsToMongo(cleanedResults);
   }
+
+ 
 
   return results;
 }

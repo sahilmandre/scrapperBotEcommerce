@@ -1,13 +1,12 @@
 // scrapers/amazon.js
 import axios from "axios";
+import chalk from "chalk";
 import * as cheerio from "cheerio";
 import dotenv from "dotenv";
-import chalk from "chalk";
 import {
   calculateDiscount,
   cleanText,
   saveDealsToMongo,
-  saveDealsToPlatformFile,
 } from "../utils/helpers.js";
 
 import { urls } from "../config/urls.js";
@@ -71,6 +70,7 @@ export async function scrapeAmazon() {
             mrp: mrpText,
             link,
             discount,
+            scrapedAt: new Date(),
           });
         }
       });
