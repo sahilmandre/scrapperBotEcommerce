@@ -1,12 +1,13 @@
 // index.js
-import express from "express";
 import dotenv from "dotenv";
-import scrapeRouter from "./routes/scrape.js";
-import dealsRouter from "./routes/deals.js";
+import express from "express";
+import mongoose from "mongoose";
 import cron from "node-cron";
+import analyticsRouter from "./routes/analytics.js";
+import dealsRouter from "./routes/deals.js";
+import scrapeRouter from "./routes/scrape.js";
 import { scrapeAmazon } from "./scrapers/amazon.js";
 import { scrapeFlipkart } from "./scrapers/flipkart.js";
-import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -33,10 +34,10 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-
 // Routes
 app.use("/api/scrape", scrapeRouter);
 app.use("/api/deals", dealsRouter);
+app.use("/api/analytics", analyticsRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
