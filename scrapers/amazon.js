@@ -6,6 +6,7 @@ import chalk from "chalk";
 import {
   calculateDiscount,
   cleanText,
+  saveDealsToMongo,
   saveDealsToPlatformFile,
 } from "../utils/helpers.js";
 
@@ -81,8 +82,12 @@ export async function scrapeAmazon() {
     }
   }
 
+  // if (allProducts.length > 0) {
+  //   saveDealsToPlatformFile("amazon", allProducts);
+  // }
+
   if (allProducts.length > 0) {
-    saveDealsToPlatformFile("amazon", allProducts);
+    await saveDealsToMongo(allProducts); // ✅ This line is CRITICAL
   }
 
   return allProducts;

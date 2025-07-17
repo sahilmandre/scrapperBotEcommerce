@@ -2,6 +2,7 @@
   "name": "scrapperbot",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js"
@@ -16,6 +17,9 @@
     "cheerio": "^1.1.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "mongodb": "^6.17.0",
+    "mongoose": "^8.16.4",
+    "node-cron": "^4.2.1",
     "puppeteer": "^24.12.1"
   },
   "devDependencies": {

@@ -6,6 +6,7 @@ import { urls } from "../config/urls.js";
 import {
   calculateDiscount,
   cleanText,
+  saveDealsToMongo,
   saveDealsToPlatformFile,
 } from "../utils/helpers.js";
 
@@ -86,8 +87,18 @@ export async function scrapeFlipkart() {
 
   await browser.close();
 
-  if (results.length > 0) {
-    saveDealsToPlatformFile("flipkart", results);
+  // if (results.length > 0) {
+  //   saveDealsToPlatformFile("flipkart", results);
+  // }
+
+  // Normalize field for MongoDB
+  const cleanedResults = results.map((item) => ({
+    ...item,
+    link: item.productUrl, // 👈 map Flipkart 'productUrl' to 'link'
+  }));
+
+  if (cleanedResults.length > 0) {
+    await saveDealsToMongo(cleanedResults);
   }
 
   return results;

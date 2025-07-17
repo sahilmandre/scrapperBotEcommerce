@@ -1,44 +1,35 @@
 // routes/deals.js
 import express from "express";
-import fs from "fs";
-import path from "path";
+import Deal from "../models/deal.js";
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  const amazonPath = path.resolve("results", "amazonDeals.json");
-  const flipkartPath = path.resolve("results", "flipkartDeals.json");
-
+router.get("/", async (req, res) => {
   try {
-    const amazonData = fs.existsSync(amazonPath)
-      ? JSON.parse(fs.readFileSync(amazonPath, "utf-8"))
-      : [];
+    const { type, minDiscount, platform } = req.query;
 
-    const flipkartData = fs.existsSync(flipkartPath)
-      ? JSON.parse(fs.readFileSync(flipkartPath, "utf-8"))
-      : [];
-
-    let deals = [...amazonData, ...flipkartData];
-
-    const { type, minDiscount } = req.query;
+    const filter = {};
 
     if (type) {
-      deals = deals.filter(
-        (deal) => deal.type?.toLowerCase() === type.toLowerCase()
-      );
+      filter.type = { $regex: new RegExp(type, "i") }; // case-insensitive
+    }
+
+    if (platform) {
+      filter.platform = platform.toLowerCase();
     }
 
     if (minDiscount) {
       const threshold = parseInt(minDiscount);
       if (!isNaN(threshold)) {
-        deals = deals.filter((deal) => deal.discount >= threshold);
+        filter.discount = { $gte: threshold };
       }
     }
 
+    const deals = await Deal.find(filter).sort({ discount: -1 }); // sort by discount descending
     res.json(deals);
   } catch (err) {
-    console.error("❌ Failed to load deals:", err.message);
-    res.status(500).json({ error: "Failed to load deals" });
+    console.error("❌ Error fetching deals:", err.message);
+    res.status(500).json({ error: "Server error while fetching deals" });
   }
 });
 
