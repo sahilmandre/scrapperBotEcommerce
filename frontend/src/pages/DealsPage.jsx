@@ -45,23 +45,33 @@ const DealsPage = () => {
       {isLoading && <p>Loading deals...</p>}
       {error && <p>Error fetching deals: {error.message}</p>}
 
-      <div className="row">
-        {deals && deals.map((deal) => (
-          <div key={deal._id} className="col-md-4 mb-4">
-            <div className="card">
-              <img src={deal.image} className="card-img-top" alt={deal.name} />
-              <div className="card-body">
-                <h5 className="card-title">{deal.name}</h5>
-                <p className="card-text">{deal.description}</p>
-                <p className="card-text">Discount: {deal.discount}%</p>
-                <p className="card-text">Price: {deal.price}</p>
-                <a href={deal.link} className="btn btn-primary" target="_blank" rel="noopener noreferrer">
-                  View Deal
-                </a>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="table-responsive">
+        <table className="table table-striped table-bordered">
+          <thead className="sticky-header">
+            <tr>
+              <th>Image</th>
+              <th>Title</th>
+              <th>Discount</th>
+              <th>Price</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deals && deals.map((deal) => (
+              <tr key={deal._id}>
+                <td><img src={deal.image} alt={deal.title.slice(0, 15)} style={{ maxWidth: '100px' }} /></td>
+                <td>{deal.title}</td>
+                <td>{deal.discount}%</td>
+                <td>{deal.price}</td>
+                <td>
+                  <a href={deal.link} className="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                    View Deal
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

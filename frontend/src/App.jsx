@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import DealsPage from './pages/DealsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -18,6 +19,9 @@ function App() {
                 <li className="nav-item">
                   <Link className="nav-link" to="/deals">Deals</Link>
                 </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/analytics">Analytics</Link>
+                </li>
               </ul>
             </div>
           </div>
@@ -26,6 +30,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/deals" element={<DealsPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
         </Routes>
       </div>
     </Router>
