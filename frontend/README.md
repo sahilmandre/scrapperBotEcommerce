@@ -1,52 +1,12 @@
-# Frontend Folder Structure
+# React + Vite
 
-This document outlines the folder structure of the frontend part of the project.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-```
-frontend/
-├── .gitignore
-├── eslint.config.js
-├── index.html
-├── package-lock.json
-├── package.json
-├── README.md
-├── vite.config.js
-├── public/
-│   └── vite.svg
-└── src/
-    ├── App.css
-    ├── App.jsx
-    ├── index.css
-    ├── main.jsx
-    ├── api/
-    │   ├── analytics.js
-    │   └── deals.js
-    ├── assets/
-    │   └── react.svg
-    ├── components/
-    │   ├── DealCard.jsx
-    │   ├── FilterBar.jsx
-    │   └── Loader.jsx
-    ├── hooks/
-    │   └── useDeals.js
-    ├── pages/
-    │   ├── Deals.jsx
-    │   ├── Home.jsx
-    │   └── NotFound.jsx
-    ├── routes/
-    │   └── AppRouter.jsx
-    └── utils/
-        └── formatPrice.js
-```
+Currently, two official plugins are available:
 
-## Description
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-- `public/`: Contains static assets served directly.
-- `src/`: Main source code directory.
-  - `api/`: API interaction modules.
-  - `assets/`: Static assets like images.
-  - `components/`: Reusable React components.
-  - `hooks/`: Custom React hooks.
-  - `pages/`: React components representing pages.
-  - `routes/`: Application routing components.
-  - `utils/`: Utility functions.
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

@@ -8,6 +8,7 @@ import dealsRouter from "./routes/deals.js";
 import scrapeRouter from "./routes/scrape.js";
 import { scrapeAmazon } from "./scrapers/amazon.js";
 import { scrapeFlipkart } from "./scrapers/flipkart.js";
+import cors from "cors";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ cron.schedule("*/30 * * * *", async () => {
 });
 
 app.use(express.json());
+app.use(cors());
 
 // MongoDB Connection
 mongoose

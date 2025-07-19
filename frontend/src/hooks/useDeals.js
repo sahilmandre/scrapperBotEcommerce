@@ -1,20 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 
-export const useDeals = (type, minDiscount) => {
-  const params = new URLSearchParams();
-  if (type) params.append("type", type);
-  if (minDiscount) params.append("minDiscount", minDiscount);
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
-  const url = `/api/deals?${params.toString()}`;
-
-  const query = useQuery({
-    queryKey: ["deals", type, minDiscount],
-    queryFn: async () => {
-      const { data } = await axios.get(url);
-      return data;
-    },
+const fetchDeals = async ({ queryKey }) => {
+  const [_key, { type, minDiscount, platform }] = queryKey;
+  const { data } = await axios.get('http://localhost:3000/api/deals', {
+    params: { type, minDiscount, platform },
   });
+  return data;
+};
 
-  return query;
+export const useDeals = (filters) => {
+  return useQuery({ queryKey: ['deals', filters], queryFn: fetchDeals });
 };
