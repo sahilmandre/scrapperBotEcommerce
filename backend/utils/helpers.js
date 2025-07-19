@@ -37,10 +37,14 @@ export function generateUrls(types) {
   const amazonBase = "https://www.amazon.in/s?k=";
   const flipkartBase = "https://www.flipkart.com/search?q=";
 
-  return types.flatMap((type) => [
-    { url: `${amazonBase}${type}`, type, platform: "amazon" },
-    { url: `${flipkartBase}${type}`, type, platform: "flipkart" },
-  ]);
+  return types.flatMap((type) => {
+    const encodedType = encodeURIComponent(type); // ✅ Fixes space bug
+
+    return [
+      { url: `${amazonBase}${encodedType}`, type, platform: "amazon" },
+      { url: `${flipkartBase}${encodedType}`, type, platform: "flipkart" },
+    ];
+  });
 }
 
 // Save array of deals to MongoDB (bulk insert)

@@ -52,6 +52,7 @@ const DealsPage = () => {
               <th>Image</th>
               <th>Title</th>
               <th>Discount</th>
+              <th>MRP</th>
               <th>Price</th>
               <th>Link</th>
             </tr>
@@ -62,6 +63,7 @@ const DealsPage = () => {
                 <td><img src={deal.image} alt={deal.title.slice(0, 15)} style={{ maxWidth: '100px' }} /></td>
                 <td>{deal.title}</td>
                 <td>{deal.discount}%</td>
+                <td>{deal.mrp}</td>
                 <td>{deal.price}</td>
                 <td>
                   <a href={deal.link} className="btn btn-primary" target="_blank" rel="noopener noreferrer">
