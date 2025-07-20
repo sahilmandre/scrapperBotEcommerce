@@ -54,6 +54,7 @@ export async function scrapeAmazon() {
         const price = parseInt(cleanText(priceText));
         const mrp = parseInt(cleanText(mrpText));
         const discount = calculateDiscount(price, mrp);
+        const imgSrc = $(el).find("img.s-image").attr("src"); // ✅ Add this
 
         if (title && price && link && discount >= threshold) {
           console.log(
@@ -70,6 +71,7 @@ export async function scrapeAmazon() {
             mrp: mrpText,
             link,
             discount,
+            image: imgSrc || "",
             scrapedAt: new Date(),
           });
         }

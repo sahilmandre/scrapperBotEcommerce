@@ -8,6 +8,7 @@ const dealSchema = new mongoose.Schema({
   mrp: String,
   link: String,
   discount: Number,
+  image: String,
   scrapedAt: {
     type: Date,
     default: Date.now,
