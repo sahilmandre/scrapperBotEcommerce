@@ -27,14 +27,15 @@ export async function scrapeFlipkart() {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
     const products = await page.evaluate(() => {
-      const cards = document.querySelectorAll("div[data-id]"); // Each product card
+      const cards = document.querySelectorAll("div[data-id]");
       const items = [];
 
       cards.forEach((card) => {
-        const anchor = card.querySelector("a.WKTcLC, a.IRpwTa");
-        const title = anchor?.innerText?.trim();
+        const titleAnchor = card.querySelector("a.wjcEIp"); // Title anchor (safe fallback)
+        const title = titleAnchor?.innerText?.trim();
 
-        const href = anchor?.getAttribute("href");
+        const productAnchor = card.querySelector("a[href*='/p/']");
+        const href = productAnchor?.getAttribute("href");
         const productUrl = href?.startsWith("http")
           ? href
           : "https://www.flipkart.com" + href;
@@ -42,8 +43,7 @@ export async function scrapeFlipkart() {
         const price = card.querySelector(".Nx9bqj")?.innerText;
         const mrp = card.querySelector(".yRaY8j")?.innerText;
 
-        // ✅ Image logic: inside .wvIX4U → .gqcSqV → img
-        const imgTag = card.querySelector("div.wvIX4U img");
+        const imgTag = card.querySelector("img");
         const image = imgTag?.src?.includes("rukminim2.flixcart.com")
           ? imgTag.src
           : "";
