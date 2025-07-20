@@ -6,7 +6,7 @@ import { urls } from "../config/urls.js";
 import {
   calculateDiscount,
   cleanText,
-  saveDealsToMongo
+  saveDealsToMongo,
 } from "../utils/helpers.js";
 
 dotenv.config();
@@ -27,25 +27,29 @@ export async function scrapeFlipkart() {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
     const products = await page.evaluate(() => {
-      const anchors = document.querySelectorAll("a.WKTcLC, a.IRpwTa");
+      const cards = document.querySelectorAll("div[data-id]"); // Each product card
       const items = [];
 
-      anchors.forEach((anchor) => {
+      cards.forEach((card) => {
+        const anchor = card.querySelector("a.WKTcLC, a.IRpwTa");
         const title = anchor?.innerText?.trim();
+
         const href = anchor?.getAttribute("href");
         const productUrl = href?.startsWith("http")
           ? href
           : "https://www.flipkart.com" + href;
 
-        const price = anchor
-          ?.closest(".hCKiGj")
-          ?.querySelector(".Nx9bqj")?.innerText;
-        const mrp = anchor
-          ?.closest(".hCKiGj")
-          ?.querySelector(".yRaY8j")?.innerText;
+        const price = card.querySelector(".Nx9bqj")?.innerText;
+        const mrp = card.querySelector(".yRaY8j")?.innerText;
 
-        if (title && price && mrp && href) {
-          items.push({ title, price, mrp, productUrl });
+        // ✅ Image logic: inside .wvIX4U → .gqcSqV → img
+        const imgTag = card.querySelector("div.wvIX4U img");
+        const image = imgTag?.src?.includes("rukminim2.flixcart.com")
+          ? imgTag.src
+          : "";
+
+        if (title && price && mrp && productUrl) {
+          items.push({ title, price, mrp, productUrl, image });
         }
       });
 
@@ -53,7 +57,6 @@ export async function scrapeFlipkart() {
     });
 
     console.log(`🔍 Scraping ${platform.toUpperCase()} [${type}] → ${url}`);
-
     console.log(chalk.gray(`🧪 Found ${products.length} product entries`));
 
     for (let item of products) {
@@ -78,7 +81,8 @@ export async function scrapeFlipkart() {
           price,
           mrp,
           discount,
-          productUrl: item.productUrl,
+          link: item.productUrl,
+          image: item.image, // ✅ include image in final result
           scrapedAt: new Date(),
         });
       }
@@ -87,21 +91,9 @@ export async function scrapeFlipkart() {
 
   await browser.close();
 
-  // if (results.length > 0) {
-  //   saveDealsToPlatformFile("flipkart", results);
-  // }
-
-  // Normalize field for MongoDB
-  const cleanedResults = results.map((item) => ({
-    ...item,
-    link: item.productUrl, // 👈 map Flipkart 'productUrl' to 'link'
-  }));
-
-  if (cleanedResults.length > 0) {
-    await saveDealsToMongo(cleanedResults);
+  if (results.length > 0) {
+    await saveDealsToMongo(results); // 👈 Save directly, image included
   }
-
- 
 
   return results;
 }
