@@ -45,23 +45,23 @@ const DealsPage = () => {
       {isLoading && <p>Loading deals...</p>}
       {error && <p>Error fetching deals: {error.message}</p>}
 
-      <div className="table-responsive">
-        <table className="table table-striped table-bordered">
+      <div>
+        <table className="table table-striped table-bordered w-100" style={{ tableLayout: 'fixed' }}>
           <thead className="sticky-header">
-            <tr>
-              <th>Image</th>
-              <th>Title</th>
-              <th>Discount</th>
-              <th>MRP</th>
-              <th>Price</th>
-              <th>Link</th>
+            <tr className='text-left'>
+              <th className='col-2'>Image</th>
+              <th className='col-4 text-truncate'>Title</th>
+              <th className='col-2'>Discount</th>
+              <th className='col-2'>MRP</th>
+              <th className='col-1'>Price</th>
+              <th className='col-2'>Link</th>
             </tr>
           </thead>
           <tbody>
             {deals && deals.map((deal) => (
               <tr key={deal._id}>
-                <td><img src={deal.image} alt={deal.title.slice(0, 15)} style={{ maxWidth: '100px' }} /></td>
-                <td>{deal.title}</td>
+                <td className='text-center'><img src={deal.image} alt={deal.title.slice(0, 15)} className='image' /></td>
+                <td style={{ wordBreak: 'break-word' }} className='text-ellipsis'>{deal.title}</td>
                 <td>{deal.discount}%</td>
                 <td>{deal.mrp}</td>
                 <td>{deal.price}</td>

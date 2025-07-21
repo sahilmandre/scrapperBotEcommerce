@@ -66,3 +66,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 4; /* number of lines to show */
+  -webkit-box-orient: vertical;
+  height: 8.5rem;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.image {
+  object-fit: cover;
+  max-width: 100%;
+  width: 8rem;
+  height: 7.5rem;
+}
