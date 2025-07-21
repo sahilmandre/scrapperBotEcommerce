@@ -1,4 +1,4 @@
-// scrapers/flipkart.js
+// scrapers/flipkart.js - Updated version
 import chalk from "chalk";
 import dotenv from "dotenv";
 import puppeteer from "puppeteer";
@@ -7,14 +7,20 @@ import {
   calculateDiscount,
   cleanText,
   saveDealsToMongo,
+  getDiscountThreshold,
+  getHeadlessSetting,
 } from "../utils/helpers.js";
 
 dotenv.config();
 
-const threshold = parseInt(process.env.DISCOUNT_THRESHOLD || "90");
-const headless = process.env.HEADLESS !== "false";
-
 export async function scrapeFlipkart() {
+  // Get dynamic settings from database
+  const threshold = await getDiscountThreshold();
+  const headless = await getHeadlessSetting();
+
+  console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
+  console.log(chalk.blue(`🤖 Headless mode: ${headless}`));
+
   const browser = await puppeteer.launch({ headless });
   const page = await browser.newPage();
 
@@ -31,7 +37,7 @@ export async function scrapeFlipkart() {
       const items = [];
 
       cards.forEach((card) => {
-        const titleAnchor = card.querySelector("a.wjcEIp"); // Title anchor (safe fallback)
+        const titleAnchor = card.querySelector("a.wjcEIp");
         const title = titleAnchor?.innerText?.trim();
 
         const productAnchor = card.querySelector("a[href*='/p/']");
@@ -82,7 +88,7 @@ export async function scrapeFlipkart() {
           mrp,
           discount,
           link: item.productUrl,
-          image: item.image, // ✅ include image in final result
+          image: item.image,
           scrapedAt: new Date(),
         });
       }
@@ -92,7 +98,7 @@ export async function scrapeFlipkart() {
   await browser.close();
 
   if (results.length > 0) {
-    await saveDealsToMongo(results); // 👈 Save directly, image included
+    await saveDealsToMongo(results);
   }
 
   return results;

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import DealsPage from './pages/DealsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import SettingsPage from './pages/SettingsPage'; // Import SettingsPage
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -22,6 +23,9 @@ function App() {
                 <li className="nav-item">
                   <Link className="nav-link" to="/analytics">Analytics</Link>
                 </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/settings">Settings</Link> {/* Add link to SettingsPage */}
+                </li>
               </ul>
             </div>
           </div>
@@ -31,6 +35,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/deals" element={<DealsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} /> {/* Add route for SettingsPage */}
         </Routes>
       </div>
     </Router>

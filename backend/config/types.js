@@ -15,4 +15,11 @@ export const productTypes = [
   "furniture",
   "bedroom",
   "branded shirt",
+  "branded jeans",
+  "Kitchen Appliances",
+  "cosmetics",
+  "Pressure washer",
+  "utensils",
+  "kadhai",
+  "pan",
 ];

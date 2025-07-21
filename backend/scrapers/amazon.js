@@ -1,4 +1,4 @@
-// scrapers/amazon.js
+// scrapers/amazon.js - Updated version with better MRP handling
 import axios from "axios";
 import chalk from "chalk";
 import * as cheerio from "cheerio";
@@ -7,15 +7,18 @@ import {
   calculateDiscount,
   cleanText,
   saveDealsToMongo,
+  getDiscountThreshold,
 } from "../utils/helpers.js";
 
 import { urls } from "../config/urls.js";
 
 dotenv.config();
 
-const threshold = parseInt(process.env.DISCOUNT_THRESHOLD || "90");
-
 export async function scrapeAmazon() {
+  // Get dynamic threshold from database
+  const threshold = await getDiscountThreshold();
+  console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
+
   const allProducts = [];
 
   for (const { url, type, platform } of urls.filter(
@@ -45,16 +48,29 @@ export async function scrapeAmazon() {
           .first()
           .text()
           .trim();
-        const mrpText = $(el)
-          .find(".a-price.a-text-price .a-offscreen")
+
+        // Improved MRP selection - looks for the actual MRP text first
+        let mrpText = $(el)
+          .find(
+            ".a-section.aok-inline-block .a-price.a-text-price .a-offscreen"
+          )
           .first()
           .text()
           .trim();
 
+        // Fallback if the above doesn't work
+        if (!mrpText) {
+          mrpText = $(el)
+            .find(".a-price.a-text-price .a-offscreen")
+            .last() // Take the last one to avoid per-unit prices
+            .text()
+            .trim();
+        }
+
         const price = parseInt(cleanText(priceText));
         const mrp = parseInt(cleanText(mrpText));
         const discount = calculateDiscount(price, mrp);
-        const imgSrc = $(el).find("img.s-image").attr("src"); // ✅ Add this
+        const imgSrc = $(el).find("img.s-image").attr("src");
 
         if (title && price && link && discount >= threshold) {
           console.log(
@@ -84,12 +100,8 @@ export async function scrapeAmazon() {
     }
   }
 
-  // if (allProducts.length > 0) {
-  //   saveDealsToPlatformFile("amazon", allProducts);
-  // }
-
   if (allProducts.length > 0) {
-    await saveDealsToMongo(allProducts); // ✅ This line is CRITICAL
+    await saveDealsToMongo(allProducts);
   }
 
   return allProducts;

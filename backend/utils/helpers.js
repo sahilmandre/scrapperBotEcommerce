@@ -1,6 +1,7 @@
-// utils/helpers.js
+// utils/helpers.js - Updated version
 import fs from "fs";
 import Deal from "../models/deal.js";
+import { getSetting } from "./settings.js";
 
 export function calculateDiscount(price, mrp) {
   if (!price || !mrp || mrp === 0) return 0;
@@ -9,6 +10,28 @@ export function calculateDiscount(price, mrp) {
 
 export function cleanText(text) {
   return text?.replace(/[₹,]/g, "").trim() || "";
+}
+
+// Get current discount threshold from database
+export async function getDiscountThreshold() {
+  try {
+    const threshold = await getSetting("DISCOUNT_THRESHOLD", 80);
+    return parseInt(threshold);
+  } catch (error) {
+    console.error("Error getting discount threshold:", error);
+    return 80; // fallback
+  }
+}
+
+// Get headless setting from database
+export async function getHeadlessSetting() {
+  try {
+    const headless = await getSetting("HEADLESS", true);
+    return headless;
+  } catch (error) {
+    console.error("Error getting headless setting:", error);
+    return true; // fallback
+  }
 }
 
 export function saveDealsToPlatformFile(platform, newDeals) {
