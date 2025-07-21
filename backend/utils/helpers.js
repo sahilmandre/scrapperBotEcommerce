@@ -1,4 +1,4 @@
-// utils/helpers.js - Updated version
+// utils/helpers.js - Updated version with JioMart support
 import fs from "fs";
 import Deal from "../models/deal.js";
 import { getSetting } from "./settings.js";
@@ -59,13 +59,20 @@ export function saveDealsToPlatformFile(platform, newDeals) {
 export function generateUrls(types) {
   const amazonBase = "https://www.amazon.in/s?k=";
   const flipkartBase = "https://www.flipkart.com/search?q=";
+  const jiomartBase = "https://www.jiomart.com/search/";
 
   return types.flatMap((type) => {
-    const encodedType = encodeURIComponent(type); // ✅ Fixes space bug
+    const encodedTypeAmazon = encodeURIComponent(type); // For Amazon & Flipkart
+    const encodedTypeJiomart = type.replace(/\s+/g, "%20"); // For JioMart URL encoding
 
     return [
-      { url: `${amazonBase}${encodedType}`, type, platform: "amazon" },
-      { url: `${flipkartBase}${encodedType}`, type, platform: "flipkart" },
+      { url: `${amazonBase}${encodedTypeAmazon}`, type, platform: "amazon" },
+      {
+        url: `${flipkartBase}${encodedTypeAmazon}`,
+        type,
+        platform: "flipkart",
+      },
+      { url: `${jiomartBase}${encodedTypeJiomart}`, type, platform: "jiomart" },
     ];
   });
 }

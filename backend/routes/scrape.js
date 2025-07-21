@@ -1,6 +1,7 @@
 import express from "express";
 import { scrapeFlipkart } from "../scrapers/flipkart.js";
 import { scrapeAmazon } from "../scrapers/amazon.js";
+import { scrapeJiomart } from "../scrapers/jiomart.js";
 import chalk from "chalk";
 
 const router = express.Router();
@@ -16,22 +17,32 @@ router.get("/:platform", async (req, res) => {
     } else if (platform === "amazon") {
       console.log(chalk.yellow("📦 Scraping Amazon..."));
       data = await scrapeAmazon();
+    } else if (platform === "jiomart") {
+      console.log(chalk.magenta("🏪 Scraping JioMart..."));
+      data = await scrapeJiomart();
     } else if (platform === "all") {
-      console.log(chalk.cyan("🔁 Scraping Amazon & Flipkart..."));
-      const [flipkartData, amazonData] = await Promise.all([
+      console.log(chalk.cyan("🔁 Scraping Amazon, Flipkart & JioMart..."));
+      const [flipkartData, amazonData, jiomartData] = await Promise.all([
         scrapeFlipkart(),
         scrapeAmazon(),
+        scrapeJiomart(),
       ]);
-      data = [...flipkartData, ...amazonData];
+      data = [...flipkartData, ...amazonData, ...jiomartData];
 
       return res.json({
         message: "✅ Scraping complete",
         amazon: amazonData.length,
         flipkart: flipkartData.length,
+        jiomart: jiomartData.length,
         total: data.length,
       });
     } else {
-      return res.status(400).json({ error: "❌ Unsupported platform" });
+      return res
+        .status(400)
+        .json({
+          error:
+            "❌ Unsupported platform. Use: amazon, flipkart, jiomart, or all",
+        });
     }
 
     if (!data || data.length === 0) {

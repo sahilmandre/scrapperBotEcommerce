@@ -31,6 +31,7 @@ const AnalyticsPage = () => {
             <h2 className="text-lg font-semibold">Average Discount</h2>
             <p className="text-2xl">Amazon - {analytics.avgDiscountByPlatform.amazon}%</p>
             <p className="text-2xl">Flipkart - {analytics.avgDiscountByPlatform.flipkart}%</p>
+            <p className="text-2xl">JioMart - {analytics.avgDiscountByPlatform.jiomart}%</p>
           </div>
 
           <div className='p-4 border rounded-lg'>

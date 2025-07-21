@@ -1,4 +1,4 @@
-// server.js - Updated version
+// server.js - Updated version with JioMart support
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
@@ -7,10 +7,11 @@ import cors from "cors";
 import analyticsRouter from "./routes/analytics.js";
 import dealsRouter from "./routes/deals.js";
 import scrapeRouter from "./routes/scrape.js";
-import settingsRouter from "./routes/settings.js"; // ✅ New settings route
+import settingsRouter from "./routes/settings.js";
 import { scrapeAmazon } from "./scrapers/amazon.js";
 import { scrapeFlipkart } from "./scrapers/flipkart.js";
-import { initializeSettings } from "./utils/settings.js"; // ✅ Initialize settings
+import { scrapeJiomart } from "./scrapers/jiomart.js";
+import { initializeSettings } from "./utils/settings.js";
 
 dotenv.config();
 
@@ -54,7 +55,11 @@ async function setupCronJob() {
     const cronExpression = `*/${interval} * * * *`; // every X minutes
     currentCronJob = cron.schedule(cronExpression, async () => {
       console.log("⏱️ Running scheduled scraping task...");
-      await Promise.all([scrapeAmazon(), scrapeFlipkart()]);
+      await Promise.all([
+        scrapeAmazon(),
+        scrapeFlipkart(),
+        scrapeJiomart(), // Added JioMart to scheduled scraping
+      ]);
       console.log("✅ Scraping completed.");
     });
 
@@ -71,7 +76,7 @@ setupCronJob();
 app.use("/api/scrape", scrapeRouter);
 app.use("/api/deals", dealsRouter);
 app.use("/api/analytics", analyticsRouter);
-app.use("/api/settings", settingsRouter); // ✅ Settings API
+app.use("/api/settings", settingsRouter);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

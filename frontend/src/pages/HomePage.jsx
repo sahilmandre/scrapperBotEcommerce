@@ -28,6 +28,9 @@ const HomePage = () => {
         <button className="btn btn-primary" type="button" onClick={() => handleScrape('amazon')} disabled={loading}>
           {loading ? 'Scraping...' : 'Scrape Amazon'}
         </button>
+        <button className="btn btn-primary" type="button" onClick={() => handleScrape('jiomart')} disabled={loading}>
+          {loading ? 'Scraping...' : 'Scrape JioMart'}
+        </button>
         <button className="btn btn-primary" type="button" onClick={() => handleScrape('all')} disabled={loading}>
           {loading ? 'Scraping...' : 'Scrape All'}
         </button>

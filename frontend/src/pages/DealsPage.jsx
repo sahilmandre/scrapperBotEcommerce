@@ -38,6 +38,7 @@ const DealsPage = () => {
             <option value="">All Platforms</option>
             <option value="flipkart">Flipkart</option>
             <option value="amazon">Amazon</option>
+            <option value="jiomart">JioMart</option>
           </select>
         </div>
       </div>
