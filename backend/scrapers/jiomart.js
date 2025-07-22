@@ -1,150 +1,119 @@
-// scrapers/jiomart.js - Fixed version
+// scrapers/jiomart.js - FINAL VERSION
+import axios from "axios";
 import chalk from "chalk";
 import dotenv from "dotenv";
-import puppeteer from "puppeteer";
-import { urls } from "../config/urls.js";
 import {
   calculateDiscount,
-  cleanText,
   saveDealsToMongo,
   getDiscountThreshold,
-  getHeadlessSetting,
 } from "../utils/helpers.js";
+import { urls } from "../config/urls.js";
 
 dotenv.config();
 
+// Algolia API constants
+const ALGOLIA_APP_ID = "3YP0HP3WSH";
+const ALGOLIA_API_KEY = "aace3f18430a49e185d2c1111602e4b1";
+const ALGOLIA_INDEX_NAME = "prod_mart_master_vertical";
+
 export async function scrapeJiomart() {
-  // Get dynamic settings from database
   const threshold = await getDiscountThreshold();
-  const headless = await getHeadlessSetting();
-
   console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
-  console.log(chalk.blue(`🤖 Headless mode: ${headless}`));
 
-  const browser = await puppeteer.launch({ 
-    headless,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-  const page = await browser.newPage();
+  const allProducts = [];
 
-  // Set user agent and viewport to mimic real browser
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-  await page.setViewport({ width: 1366, height: 768 });
-
-  const results = [];
-
-  for (let { url, type, platform } of urls.filter(
+  for (const { url, type, platform } of urls.filter(
     (u) => u.platform === "jiomart"
   )) {
     try {
-      console.log(chalk.blue(`🔍 Scraping [${type}]: ${url}`));
-      
-      // Navigate with longer timeout and wait for either network idle or DOM content loaded
-      await page.goto(url, { 
-        waitUntil: ['domcontentloaded', 'networkidle2'],
-        timeout: 30000 
-      });
-
-      // Wait for products to load - using more reliable selectors
-      await page.waitForSelector('li.ais-InfiniteHits-item', { 
-        timeout: 15000,
-        visible: true 
-      });
-
-      const products = await page.evaluate(() => {
-        const productCards = Array.from(document.querySelectorAll('li.ais-InfiniteHits-item'));
-        const items = [];
-
-        productCards.forEach((card) => {
-          try {
-            // Title
-            const titleElement = card.querySelector('.plp-card-details-name');
-            const title = titleElement?.innerText?.trim();
-
-            // Product link
-            const linkElement = card.querySelector('a.plp-card-wrapper');
-            const href = linkElement?.getAttribute("href");
-            const productUrl = href?.startsWith("http")
-              ? href
-              : "https://www.jiomart.com" + href;
-
-            // Current price
-            const priceElement = card.querySelector('.plp-card-details-price > span.jm-heading-xxs');
-            const price = priceElement?.innerText?.trim();
-
-            // MRP
-            const mrpElement = card.querySelector('.plp-card-details-price > span.line-through');
-            const mrp = mrpElement?.innerText?.trim();
-
-            // Image
-            const imgElement = card.querySelector('img.lazyautosizes');
-            const image = imgElement?.src || imgElement?.getAttribute('data-src') || '';
-
-            // Only add if we have essential data
-            if (title && price && productUrl) {
-              items.push({ 
-                title, 
-                price, 
-                mrp: mrp || price, // Use price as fallback if no MRP
-                productUrl, 
-                image 
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing product card:', error);
-          }
-        });
-
-        return items;
-      });
-
-      console.log(`✅ Found ${products.length} products from: ${url}`);
-
-      for (let item of products) {
-        const price = parseInt(cleanText(item.price));
-        const mrp = parseInt(cleanText(item.mrp));
-        const discount = calculateDiscount(price, mrp);
-
-        if (!isNaN(discount)) {
-          console.log(
-            chalk.gray(
-              `📦 ${item.title} | ₹${price} / ₹${mrp} → ${discount}% off`
-            )
-          );
-
-          if (discount >= threshold && discount > 0) {
-            console.log(chalk.green(`🔥 DEAL: ${item.title} — ${discount}% OFF`));
-            results.push({
-              platform: "jiomart",
-              type,
-              title: item.title,
-              price: item.price,
-              mrp: item.mrp,
-              discount,
-              link: item.productUrl,
-              image: item.image,
-              scrapedAt: new Date(),
-            });
-          }
-        }
+      const searchQuery = new URL(url).pathname.split("/search/")[1];
+      if (!searchQuery) {
+        console.log(chalk.yellow(`⚠️ No search query found in URL: ${url}`));
+        continue;
       }
 
-      // Wait between requests to be respectful
-      await page.waitForTimeout(1000);
+      console.log(chalk.blue(`🔍 Scraping [${type}]: ${searchQuery}`));
 
-    } catch (error) {
-      console.error(`❌ JioMart Scrape failed for ${url} -`, error.message);
-      // Continue with next URL instead of failing completely
-      continue;
+      const genericFilters = `(mart_availability:JIO OR mart_availability:JIO_WA) AND (available_stores:PANINDIABOOKS OR available_stores:PANINDIACRAFT OR available_stores:PANINDIADIGITAL OR available_stores:PANINDIAFASHION OR available_stores:PANINDIAFURNITURE OR available_stores:T12D OR available_stores:PANINDIAGROCERIES OR available_stores:PANINDIAHOMEANDKITCHEN OR available_stores:PANINDIAHOMEIMPROVEMENT OR available_stores:PANINDIAJEWEL OR available_stores:PANINDIALOCALSHOPS OR available_stores:PANINDIASTL OR available_stores:PANINDIAWELLNESS) AND (NOT vertical_code:ALCOHOL) AND (NOT vertical_code:LOCALSHOPS)`;
+
+      const response = await axios.post(
+        `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/*/queries`,
+        {
+          requests: [
+            {
+              indexName: ALGOLIA_INDEX_NAME,
+              // FINAL FIX: The 'params' value must be a URL-encoded string.
+              params: new URLSearchParams({
+                query: decodeURIComponent(searchQuery),
+                hitsPerPage: "50", // Use string for consistency in URL params
+                facets: JSON.stringify(["*"]),
+                facetFilters: JSON.stringify([
+                  ["category_tree.level0:Category"],
+                ]),
+                filters: genericFilters,
+              }).toString(),
+            },
+          ],
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Algolia-Application-Id": ALGOLIA_APP_ID,
+            "X-Algolia-API-Key": ALGOLIA_API_KEY,
+            Accept: "application/json",
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          },
+        }
+      );
+
+      const products = response.data.results[0].hits
+        .map((hit) => {
+          const sellerData =
+            hit.buybox_mrp?.PANINDIAFASHION ||
+            hit.buybox_mrp?.PANINDIAGROCERIES ||
+            hit.buybox_mrp?.PANINDIAHOMEANDKITCHEN ||
+            (hit.seller_wise_mrp &&
+              Object.values(hit.seller_wise_mrp)[0]?.[
+                Object.keys(Object.values(hit.seller_wise_mrp)[0])[0]
+              ]) ||
+            null;
+
+          if (!sellerData) return null;
+
+          const price = sellerData.price || 0;
+          const mrp = sellerData.mrp || price;
+          const discount = calculateDiscount(price, mrp);
+
+          return {
+            platform,
+            type,
+            title: hit.display_name,
+            price: `₹${price}`,
+            mrp: `₹${mrp}`,
+            link: `https://www.jiomart.com${hit.url_path}`,
+            discount,
+            image: `https://www.jiomart.com/images/product/original/${hit.image_path}`,
+            scrapedAt: new Date(),
+          };
+        })
+        .filter((product) => product && product.discount >= threshold);
+
+      console.log(
+        `✅ Found ${products.length} valid deals for: ${searchQuery}`
+      );
+      allProducts.push(...products);
+    } catch (err) {
+      console.error(`❌ JioMart API scrape failed for ${url} -`, err.message);
+      if (err.response) {
+        console.error("API Error:", err.response.data);
+      }
     }
   }
 
-  await browser.close();
-
-  if (results.length > 0) {
-    await saveDealsToMongo(results);
+  if (allProducts.length > 0) {
+    await saveDealsToMongo(allProducts);
   }
 
-  console.log(chalk.green(`✅ JioMart scraping completed. Found ${results.length} deals.`));
-  return results;
-};
+  return allProducts;
+}

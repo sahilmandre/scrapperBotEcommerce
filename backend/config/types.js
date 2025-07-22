@@ -22,4 +22,8 @@ export const productTypes = [
   "utensils",
   "kadhai",
   "pan",
+  "buiscuits",
+  "levis jeans",
+  "levis shirts",
+  "peter england shirts",
 ];
