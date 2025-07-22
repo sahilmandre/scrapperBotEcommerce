@@ -2,13 +2,13 @@
 import chalk from "chalk";
 import dotenv from "dotenv";
 import puppeteer from "puppeteer";
-import { urls } from "../config/urls.js";
 import {
   calculateDiscount,
   cleanText,
   saveDealsToMongo,
   getDiscountThreshold,
   getHeadlessSetting,
+  getScrapingUrls,
 } from "../utils/helpers.js";
 
 dotenv.config();
@@ -20,6 +20,9 @@ export async function scrapeFlipkart() {
 
   console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
   console.log(chalk.blue(`🤖 Headless mode: ${headless}`));
+
+  // ✅ GET DYNAMIC URLS AT RUNTIME
+  const urls = await getScrapingUrls();
 
   const browser = await puppeteer.launch({ headless });
   const page = await browser.newPage();

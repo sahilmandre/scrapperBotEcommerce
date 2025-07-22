@@ -1,4 +1,4 @@
-// server.js - Updated version with JioMart support
+// backend/server.js - Updated version with JioMart support
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";

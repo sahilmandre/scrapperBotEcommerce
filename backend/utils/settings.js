@@ -4,11 +4,44 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// The original list from your types.js file
+const originalProductTypes = [
+  "gadgets",
+  "coolers",
+  "saree",
+  "jeans",
+  "tops",
+  "shirts",
+  "groceries",
+  "shoes",
+  "watches",
+  "bags",
+  "laptops",
+  "mobiles",
+  "tv",
+  "furniture",
+  "bedroom",
+  "branded shirt",
+  "branded jeans",
+  "Kitchen Appliances",
+  "cosmetics",
+  "Pressure washer",
+  "utensils",
+  "kadhai",
+  "pan",
+  "buiscuits",
+  "levis jeans",
+  "levis shirts",
+  "peter england shirts",
+];
+
 // Default settings
 const DEFAULT_SETTINGS = {
   DISCOUNT_THRESHOLD: parseInt(process.env.DISCOUNT_THRESHOLD || "80"),
   HEADLESS: process.env.HEADLESS !== "false",
   SCRAPE_INTERVAL: 30, // minutes
+  // ✅ ADD THIS NEW SETTING
+  PRODUCT_TYPES: originalProductTypes,
 };
 
 // Cache for frequently accessed settings
@@ -21,13 +54,13 @@ export async function getSetting(key, defaultValue = null) {
   try {
     // Check cache first
     const now = Date.now();
-    if (settingsCache[key] && (now - cacheTimestamp < CACHE_DURATION)) {
+    if (settingsCache[key] && now - cacheTimestamp < CACHE_DURATION) {
       return settingsCache[key];
     }
-    
+
     const setting = await Settings.findOne({ key });
     let value;
-    
+
     if (setting) {
       value = setting.value;
     } else {
@@ -37,13 +70,13 @@ export async function getSetting(key, defaultValue = null) {
         await setSetting(key, value);
       }
     }
-    
+
     // Update cache
     if (value !== null) {
       settingsCache[key] = value;
       cacheTimestamp = now;
     }
-    
+
     return value;
   } catch (error) {
     console.error(`Error getting setting ${key}:`, error);
@@ -65,10 +98,10 @@ export async function setSetting(key, value) {
       { key, value },
       { upsert: true, new: true }
     );
-    
+
     // Clear cache when setting is updated
     clearSettingsCache();
-    
+
     console.log(`✅ Setting ${key} updated to:`, value);
     return true;
   } catch (error) {
@@ -82,19 +115,19 @@ export async function getAllSettings() {
   try {
     const settings = await Settings.find({});
     const settingsObj = {};
-    
+
     // Add DB settings
-    settings.forEach(setting => {
+    settings.forEach((setting) => {
       settingsObj[setting.key] = setting.value;
     });
-    
+
     // Add missing defaults
-    Object.keys(DEFAULT_SETTINGS).forEach(key => {
+    Object.keys(DEFAULT_SETTINGS).forEach((key) => {
       if (!(key in settingsObj)) {
         settingsObj[key] = DEFAULT_SETTINGS[key];
       }
     });
-    
+
     return settingsObj;
   } catch (error) {
     console.error("Error getting all settings:", error);
@@ -106,7 +139,7 @@ export async function getAllSettings() {
 export async function initializeSettings() {
   try {
     console.log("🔧 Initializing settings...");
-    
+
     for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
       const existing = await Settings.findOne({ key });
       if (!existing) {
@@ -114,7 +147,7 @@ export async function initializeSettings() {
         console.log(`✅ Initialized ${key}: ${value}`);
       }
     }
-    
+
     console.log("✅ Settings initialization complete");
   } catch (error) {
     console.error("❌ Error initializing settings:", error);

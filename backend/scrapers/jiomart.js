@@ -1,4 +1,4 @@
-// scrapers/jiomart.js - FINAL VERSION
+//backend/scrapers/jiomart.js - FINAL VERSION
 import axios from "axios";
 import chalk from "chalk";
 import dotenv from "dotenv";
@@ -6,8 +6,8 @@ import {
   calculateDiscount,
   saveDealsToMongo,
   getDiscountThreshold,
+  getScrapingUrls,
 } from "../utils/helpers.js";
-import { urls } from "../config/urls.js";
 
 dotenv.config();
 
@@ -19,6 +19,8 @@ const ALGOLIA_INDEX_NAME = "prod_mart_master_vertical";
 export async function scrapeJiomart() {
   const threshold = await getDiscountThreshold();
   console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
+
+  const urls = await getScrapingUrls();
 
   const allProducts = [];
 

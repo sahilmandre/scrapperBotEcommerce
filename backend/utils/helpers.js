@@ -1,4 +1,4 @@
-// utils/helpers.js - Updated version with JioMart support
+// backend/utils/helpers.js - Updated version with JioMart support
 import fs from "fs";
 import Deal from "../models/deal.js";
 import { getSetting } from "./settings.js";
@@ -75,6 +75,17 @@ export function generateUrls(types) {
       { url: `${jiomartBase}${encodedTypeJiomart}`, type, platform: "jiomart" },
     ];
   });
+}
+
+// ✅ ADD THIS NEW ASYNC HELPER
+export async function getScrapingUrls() {
+  try {
+    const productTypes = await getSetting("PRODUCT_TYPES", []); // Fetch types from DB
+    return generateUrls(productTypes); // Generate URLs on-the-fly
+  } catch (error) {
+    console.error("❌ Failed to get scraping URLs:", error);
+    return []; // Return empty array on error
+  }
 }
 
 // Save array of deals to MongoDB (bulk insert)

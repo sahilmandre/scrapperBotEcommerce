@@ -8,9 +8,8 @@ import {
   cleanText,
   saveDealsToMongo,
   getDiscountThreshold,
+  getScrapingUrls,
 } from "../utils/helpers.js";
-
-import { urls } from "../config/urls.js";
 
 dotenv.config();
 
@@ -18,6 +17,8 @@ export async function scrapeAmazon() {
   // Get dynamic threshold from database
   const threshold = await getDiscountThreshold();
   console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
+
+  const urls = await getScrapingUrls();
 
   const allProducts = [];
 

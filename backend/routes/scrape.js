@@ -1,3 +1,5 @@
+//backend/routes/scrape.js
+
 import express from "express";
 import { scrapeFlipkart } from "../scrapers/flipkart.js";
 import { scrapeAmazon } from "../scrapers/amazon.js";
@@ -37,12 +39,10 @@ router.get("/:platform", async (req, res) => {
         total: data.length,
       });
     } else {
-      return res
-        .status(400)
-        .json({
-          error:
-            "❌ Unsupported platform. Use: amazon, flipkart, jiomart, or all",
-        });
+      return res.status(400).json({
+        error:
+          "❌ Unsupported platform. Use: amazon, flipkart, jiomart, or all",
+      });
     }
 
     if (!data || data.length === 0) {
