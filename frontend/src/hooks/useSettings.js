@@ -1,95 +1,52 @@
-// // frontend/src/hooks/useSettings.js
-// import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 
-// const API_BASE = 'http://localhost:3000/api/settings';
+// --- API Functions ---
 
-// // Fetch all settings
-// const fetchSettings = async () => {
-//   const { data } = await axios.get(API_BASE);
-//   return data;
-// };
-
-// // Update setting
-// const updateSetting = async ({ key, value }) => {
-//   const { data } = await axios.put(`${API_BASE}/${key}`, { value });
-//   return data;
-// };
-
-// // Update multiple settings
-// const updateSettings = async (settings) => {
-//   const { data } = await axios.put(API_BASE, settings);
-//   return data;
-// };
-
-// // Hook to get all settings
-// export const useSettings = () => {
-//   return useQuery({
-//     queryKey: ['settings'],
-//     queryFn: fetchSettings,
-//   });
-// };
-
-// // Hook to update single setting
-// export const useUpdateSetting = () => {
-//   const queryClient = useQueryClient();
-  
-//   return useMutation({
-//     mutationFn: updateSetting,
-//     onSuccess: () => {
-//       // Invalidate and refetch settings
-//       queryClient.invalidateQueries({ queryKey: ['settings'] });
-//     },
-//   });
-// };
-
-// // Hook to update multiple settings
-// export const useUpdateSettings = () => {
-//   const queryClient = useQueryClient();
-  
-//   return useMutation({
-//     mutationFn: updateSettings,
-//     onSuccess: () => {
-//       // Invalidate and refetch settings
-//       queryClient.invalidateQueries({ queryKey: ['settings'] });
-//     },
-//   });
-// };
-
-
-// frontend/src/hooks/useSettings.js
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-
-const fetchDiscountThreshold = async () => {
-  const { data } = await axios.get('http://localhost:3000/api/settings/DISCOUNT_THRESHOLD');
+// 1. Fetches the entire settings object
+const fetchAllSettings = async () => {
+  const { data } = await axios.get("http://localhost:3000/api/settings");
   return data;
 };
 
-const updateDiscountThreshold = async (threshold) => {
-  const { data } = await axios.put('http://localhost:3000/api/settings/DISCOUNT_THRESHOLD', {
-    value: parseInt(threshold)  // Changed from 'threshold' to 'value'
-  });
+// 2. Updates the entire settings object
+const updateAllSettings = async (settings) => {
+  // The backend expects a PUT request to the base /api/settings endpoint
+  const { data } = await axios.put(
+    "http://localhost:3000/api/settings",
+    settings
+  );
   return data;
 };
 
-export const useDiscountThreshold = () => {
-  return useQuery({ 
-    queryKey: ['discountThreshold'], 
-    queryFn: fetchDiscountThreshold 
+// --- React Query Hooks ---
+
+// 1. Hook to get all settings
+export const useAllSettings = () => {
+  return useQuery({
+    queryKey: ["settings"], // A single query key for all settings
+    queryFn: fetchAllSettings,
   });
 };
 
-export const useUpdateDiscountThreshold = () => {
+// 2. Hook to update all settings
+export const useUpdateAllSettings = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: updateDiscountThreshold,
+    mutationFn: updateAllSettings,
     onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['discountThreshold'] });
-      queryClient.invalidateQueries({ queryKey: ['deals'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      // When the mutation is successful, invalidate the 'settings' query to refetch the latest data.
+      // This will automatically update the UI everywhere the settings are used.
+      console.log("Settings updated successfully, invalidating queries...");
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+
+      // We can also invalidate other queries that might depend on these settings
+      queryClient.invalidateQueries({ queryKey: ["deals"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+    },
+    onError: (error) => {
+      console.error("Error updating settings:", error);
     },
   });
 };
