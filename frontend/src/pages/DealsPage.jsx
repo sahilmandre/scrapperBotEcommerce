@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDeals } from '../hooks/useDeals';
 import { FixedSizeList as List } from 'react-window';
 import {
@@ -21,8 +21,11 @@ import {
   Grid,
   Container,
   Chip,
-  Link
+  Link,
+  TableSortLabel
 } from '@mui/material';
+import { visuallyHidden } from '@mui/utils';
+
 
 // Helper to get platform-specific colors for the chips
 const getPlatformChipStyle = (platform) => {
@@ -38,18 +41,76 @@ const getPlatformChipStyle = (platform) => {
   }
 };
 
+// Helper function for stable sorting
+function stableSort(array, comparator) {
+  const stabilizedThis = array.map((el, index) => [el, index]);
+  stabilizedThis.sort((a, b) => {
+    const order = comparator(a[0], b[0]);
+    if (order !== 0) {
+      return order;
+    }
+    return a[1] - b[1];
+  });
+  return stabilizedThis.map((el) => el[0]);
+}
+
+function getComparator(order, orderBy) {
+  return order === 'desc'
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
+
+function descendingComparator(a, b, orderBy) {
+  // Helper to clean and parse numeric values from strings like '₹1,999'
+  const cleanAndParse = (value) => {
+    if (typeof value !== 'string') return value;
+    return parseFloat(value.replace(/[₹,]/g, ''));
+  };
+
+  let valA = a[orderBy];
+  let valB = b[orderBy];
+
+  if (orderBy === 'price' || orderBy === 'mrp' || orderBy === 'discount') {
+    valA = cleanAndParse(valA);
+    valB = cleanAndParse(valB);
+  }
+
+  if (valB < valA) {
+    return -1;
+  }
+  if (valB > valA) {
+    return 1;
+  }
+  return 0;
+}
+
+
 const DealsPage = () => {
   const [filters, setFilters] = useState({ type: '', minDiscount: '', platform: '' });
   const { data: deals, isLoading, error } = useDeals(filters);
+
+  const [order, setOrder] = useState('desc');
+  const [orderBy, setOrderBy] = useState('discount');
+
+  const handleRequestSort = (event, property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const sortedDeals = useMemo(() => {
+    if (!deals) return [];
+    return stableSort(deals, getComparator(order, orderBy));
+  }, [deals, order, orderBy]);
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  // --- Row Component for Virtualized List ---
-  // This component renders a single row. `react-window` clones this element for each visible row.
   const Row = ({ index, style }) => {
-    const deal = deals[index];
+    const deal = sortedDeals[index];
+    // Render nothing if deal is not available (can happen during filter/sort changes)
+    if (!deal) return null;
     return (
       <TableRow style={style} key={deal._id} hover component="div" sx={{ '&:last-child td, &:last-child th': { border: 0 }, display: 'flex' }}>
         <TableCell component="div" sx={{ width: '10%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -93,13 +154,22 @@ const DealsPage = () => {
     );
   };
 
+  const headCells = [
+    { id: 'image', numeric: false, disablePadding: false, label: 'Image', sortable: false, width: '10%', align: 'center' },
+    { id: 'title', numeric: false, disablePadding: false, label: 'Title', sortable: true, width: '35%' },
+    { id: 'discount', numeric: true, disablePadding: false, label: 'Discount', sortable: true, width: '10%', align: 'left' },
+    { id: 'mrp', numeric: true, disablePadding: false, label: 'MRP', sortable: true, width: '10%', align: 'left', paddingLeft: 1 },
+    { id: 'price', numeric: true, disablePadding: false, label: 'Price', sortable: true, width: '10%', align: 'left', paddingLeft: 1 },
+    { id: 'platform', numeric: false, disablePadding: false, label: 'Platform', sortable: true, width: '10%', align: 'center' },
+    { id: 'link', numeric: false, disablePadding: false, label: 'Link', sortable: false, width: '10%', align: 'center' },
+  ];
+
   return (
     <Container maxWidth="xl" sx={{ py: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
       <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontWeight: 'bold', color: '#333' }}>
         Latest Deals
       </Typography>
 
-      {/* --- Filters Section --- */}
       <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: '12px' }}>
         <Typography variant="h6" gutterBottom>Filter Deals</Typography>
         <Grid container spacing={2} alignItems="center">
@@ -134,29 +204,54 @@ const DealsPage = () => {
         </Typography>
       )}
 
-      {/* --- Deals Table --- */}
       {!isLoading && !error && (
         <Paper elevation={2} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <TableContainer sx={{ maxHeight: '70vh' }}>
+          <TableContainer>
             <Table stickyHeader component="div" aria-label="deals table">
               <TableHead component="div">
                 <TableRow component="div" sx={{ '& th': { backgroundColor: '#eef2f6', fontWeight: 'bold' }, display: 'flex' }}>
-                  <TableCell component="div" sx={{ width: '10%' }}>Image</TableCell>
-                  <TableCell component="div" sx={{ width: '35%' }}>Title</TableCell>
-                  <TableCell component="div" align="center" sx={{ width: '10%' }}>Discount</TableCell>
-                  <TableCell component="div" align="right" sx={{ width: '10%' }}>MRP</TableCell>
-                  <TableCell component="div" align="right" sx={{ width: '10%' }}>Price</TableCell>
-                  <TableCell component="div" align="center" sx={{ width: '10%' }}>Platform</TableCell>
-                  <TableCell component="div" align="center" sx={{ width: '15%' }}>Link</TableCell>
+                  {headCells.map((headCell) => (
+                    <TableCell
+                      key={headCell.id}
+                      sortDirection={orderBy === headCell.id ? order : false}
+                      component="div"
+                      sx={{
+                        width: headCell.width,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: headCell.align === 'right' ? 'flex-end' : headCell.align === 'center' ? 'center' : 'flex-start',
+                        paddingLeft: headCell.paddingLeft
+                      }}
+                    >
+                      {headCell.sortable ? (
+                        <TableSortLabel
+                          active={orderBy === headCell.id}
+                          direction={orderBy === headCell.id ? order : 'asc'}
+                          onClick={(e) => handleRequestSort(e, headCell.id)}
+                        >
+                          {headCell.label}
+                          {orderBy === headCell.id ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      ) : (
+                        headCell.label
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
               </TableHead>
               <TableBody component="div">
-                {deals && deals.length > 0 ? (
+                {sortedDeals.length > 0 ? (
                   <List
-                    height={500} // Adjust this height based on your needs
-                    itemCount={deals.length}
-                    itemSize={100} // The height of each row
+                    height={1000}
+                    itemCount={sortedDeals.length}
+                    itemSize={100}
                     width="100%"
+                    // Pass sortedDeals to the list so it re-renders on sort change
+                    itemData={sortedDeals}
                   >
                     {Row}
                   </List>
