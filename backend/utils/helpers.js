@@ -1,7 +1,75 @@
-// backend/utils/helpers.js - Updated version with JioMart support
-import fs from "fs";
-import Deal from "../models/deal.js";
 import { getSetting } from "./settings.js";
+
+/**
+ * Extracts a unique product ID from a URL based on the platform.
+ * This version is more robust to handle different URL formats, including sponsored links.
+ * @param {string} link - The product URL to parse.
+ * @param {string} platform - The platform ('amazon', 'flipkart', 'jiomart').
+ * @returns {string|null} A unique product ID like 'amzn-B0CLV1X4QJ' or null.
+ */
+export function extractProductId(link, platform) {
+  try {
+    const url = new URL(link);
+
+    if (platform === "amazon") {
+      // ✅ NEW PATTERN: Handle sponsored links first ('/sspa/click')
+      if (url.pathname.startsWith("/sspa/click")) {
+        const redirectUrl = url.searchParams.get("url");
+        if (redirectUrl) {
+          // Create a new URL object from the decoded redirect URL and re-run extraction
+          const decodedUrl = new URL("https://www.amazon.in" + redirectUrl);
+          const match = decodedUrl.pathname.match(/\/dp\/([A-Z0-9]{10})/);
+          if (match && match[1]) {
+            return `amzn-${match[1]}`;
+          }
+        }
+      }
+
+      // Pattern 1: Look for '/dp/ASIN' in the path. This is the most common format.
+      let match = url.pathname.match(/\/dp\/([A-Z0-9]{10})/);
+      if (match && match[1]) {
+        return `amzn-${match[1]}`;
+      }
+      // Pattern 2: Fallback for URLs with '/gp/product/ASIN'.
+      match = url.pathname.match(/\/gp\/product\/([A-Z0-9]{10})/);
+      if (match && match[1]) {
+        return `amzn-${match[1]}`;
+      }
+    } else if (platform === "flipkart") {
+      // Pattern 1: Look for the 'pid' in the query parameters. This is the most reliable.
+      const pid = url.searchParams.get("pid");
+      if (pid) {
+        return `fk-${pid}`;
+      }
+      // Pattern 2: Fallback for URLs that might not have a 'pid' but have a similar structure.
+      const pathMatch = url.pathname.match(
+        /\/p\/[a-zA-Z0-9-]+\/([A-Z0-9]{16})/
+      );
+      if (pathMatch && pathMatch[1]) {
+        return `fk-${pathMatch[1]}`;
+      }
+    } else if (platform === "jiomart") {
+      // The ID is usually the last part of the path, often a long number.
+      const pathParts = url.pathname.split("/");
+      const potentialId = pathParts[pathParts.length - 1];
+      if (potentialId && !isNaN(potentialId)) {
+        // Check if it's a number
+        return `jm-${potentialId}`;
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to parse URL ${link}`, error);
+    return null;
+  }
+
+  // If no pattern matches after trying everything, log a warning.
+  console.warn(
+    `⚠️ Could not determine Product ID for ${platform} link: ${link}`
+  );
+  return null;
+}
+
+// --- Other helper functions remain the same ---
 
 export function calculateDiscount(price, mrp) {
   if (!price || !mrp || mrp === 0) return 0;
@@ -12,7 +80,6 @@ export function cleanText(text) {
   return text?.replace(/[₹,]/g, "").trim() || "";
 }
 
-// Get current discount threshold from database
 export async function getDiscountThreshold() {
   try {
     const threshold = await getSetting("DISCOUNT_THRESHOLD", 80);
@@ -23,7 +90,6 @@ export async function getDiscountThreshold() {
   }
 }
 
-// Get headless setting from database
 export async function getHeadlessSetting() {
   try {
     const headless = await getSetting("HEADLESS", true);
@@ -34,26 +100,14 @@ export async function getHeadlessSetting() {
   }
 }
 
-export function saveDealsToPlatformFile(platform, newDeals) {
-  const filePath = `results/${platform}deals.json`;
-  let existingDeals = [];
-
-  if (fs.existsSync(filePath)) {
-    const rawData = fs.readFileSync(filePath, "utf-8");
-    try {
-      existingDeals = JSON.parse(rawData);
-    } catch {
-      console.warn(`⚠️ Invalid JSON in ${filePath}, resetting...`);
-    }
+export async function getScrapingUrls() {
+  try {
+    const productTypes = await getSetting("PRODUCT_TYPES", []);
+    return generateUrls(productTypes);
+  } catch (error) {
+    console.error("❌ Failed to get scraping URLs:", error);
+    return [];
   }
-
-  const combined = [...existingDeals, ...newDeals];
-  const unique = Array.from(
-    new Map(combined.map((d) => [`${d.title}-${d.price}`, d])).values()
-  );
-
-  fs.writeFileSync(filePath, JSON.stringify(unique, null, 2), "utf-8");
-  return unique.length;
 }
 
 export function generateUrls(types) {
@@ -62,49 +116,15 @@ export function generateUrls(types) {
   const jiomartBase = "https://www.jiomart.com/search/";
 
   return types.flatMap((type) => {
-    const encodedTypeAmazon = encodeURIComponent(type); // For Amazon & Flipkart
-    const encodedTypeJiomart = type.replace(/\s+/g, "%20"); // For JioMart URL encoding
-
+    const encodedType = encodeURIComponent(type);
     return [
-      { url: `${amazonBase}${encodedTypeAmazon}`, type, platform: "amazon" },
+      { url: `${amazonBase}${encodedType}`, type, platform: "amazon" },
+      { url: `${flipkartBase}${encodedType}`, type, platform: "flipkart" },
       {
-        url: `${flipkartBase}${encodedTypeAmazon}`,
+        url: `${jiomartBase}${type.replace(/\s+/g, "%20")}`,
         type,
-        platform: "flipkart",
+        platform: "jiomart",
       },
-      { url: `${jiomartBase}${encodedTypeJiomart}`, type, platform: "jiomart" },
     ];
   });
-}
-
-// ✅ ADD THIS NEW ASYNC HELPER
-export async function getScrapingUrls() {
-  try {
-    const productTypes = await getSetting("PRODUCT_TYPES", []); // Fetch types from DB
-    return generateUrls(productTypes); // Generate URLs on-the-fly
-  } catch (error) {
-    console.error("❌ Failed to get scraping URLs:", error);
-    return []; // Return empty array on error
-  }
-}
-
-// Save array of deals to MongoDB (bulk insert)
-export async function saveDealsToMongo(deals) {
-  try {
-    if (!Array.isArray(deals) || deals.length === 0) return;
-
-    // Remove existing deals of same platform + type to avoid duplicates
-    const uniqueKeys = [
-      ...new Set(deals.map((d) => `${d.platform}-${d.type}`)),
-    ];
-    for (const key of uniqueKeys) {
-      const [platform, type] = key.split("-");
-      await Deal.deleteMany({ platform, type });
-    }
-
-    await Deal.insertMany(deals);
-    console.log(`✅ ${deals.length} deals saved to MongoDB.`);
-  } catch (err) {
-    console.error("❌ Error saving to MongoDB:", err.message);
-  }
 }

@@ -1,32 +1,28 @@
-// scrapers/amazon.js - Updated version with better MRP handling
 import axios from "axios";
 import chalk from "chalk";
 import * as cheerio from "cheerio";
 import dotenv from "dotenv";
+import Product from "../models/product.js";
 import {
   calculateDiscount,
   cleanText,
-  saveDealsToMongo,
   getDiscountThreshold,
   getScrapingUrls,
+  extractProductId,
 } from "../utils/helpers.js";
 
 dotenv.config();
 
 export async function scrapeAmazon() {
-  // Get dynamic threshold from database
   const threshold = await getDiscountThreshold();
-  console.log(chalk.blue(`🎯 Using discount threshold: ${threshold}%`));
-
   const urls = await getScrapingUrls();
+  console.log(chalk.blue(`🎯 Amazon: Using discount threshold: ${threshold}%`));
 
-  const allProducts = [];
+  const updatedProducts = [];
 
-  for (const { url, type, platform } of urls.filter(
-    (u) => u.platform === "amazon"
-  )) {
+  for (const { url, type } of urls.filter((u) => u.platform === "amazon")) {
     try {
-      console.log(chalk.blue(`🔍 Scraping [${type}]: ${url}`));
+      console.log(chalk.blue(`🔍 Scraping Amazon [${type}]: ${url}`));
 
       const { data: html } = await axios.get(url, {
         headers: {
@@ -36,21 +32,25 @@ export async function scrapeAmazon() {
       });
 
       const $ = cheerio.load(html);
-      const products = [];
 
-      $("div[data-asin]:has(h2)").each((_, el) => {
-        const title = $(el).find("h2 span").text().trim();
+      for (const el of $("div[data-asin]:has(h2)")) {
         const href = $(el).find("a.a-link-normal").attr("href");
-        const link = href?.startsWith("http")
+
+        // ✅ ADDED CHECK: Ignore elements with invalid or non-product links
+        if (!href || href === "#" || !href.includes("/dp/")) {
+          continue; // Skip this element and move to the next one
+        }
+
+        const title = $(el).find("h2 span").text().trim();
+        const link = href.startsWith("http")
           ? href
           : `https://www.amazon.in${href}`;
+
         const priceText = $(el)
           .find(".a-price .a-offscreen")
           .first()
           .text()
           .trim();
-
-        // Improved MRP selection - looks for the actual MRP text first
         let mrpText = $(el)
           .find(
             ".a-section.aok-inline-block .a-price.a-text-price .a-offscreen"
@@ -58,12 +58,10 @@ export async function scrapeAmazon() {
           .first()
           .text()
           .trim();
-
-        // Fallback if the above doesn't work
         if (!mrpText) {
           mrpText = $(el)
             .find(".a-price.a-text-price .a-offscreen")
-            .last() // Take the last one to avoid per-unit prices
+            .last()
             .text()
             .trim();
         }
@@ -74,36 +72,51 @@ export async function scrapeAmazon() {
         const imgSrc = $(el).find("img.s-image").attr("src");
 
         if (title && price && link && discount >= threshold) {
-          console.log(
-            chalk.green(
-              `🔥 DEAL: ${title} — ₹${price} / ₹${mrp} → ${discount}% OFF`
-            )
-          );
+          const productId = extractProductId(link, "amazon");
+          if (!productId) {
+            console.log(
+              chalk.yellow(`⚠️ Could not extract Product ID for: ${title}`)
+            );
+            continue;
+          }
 
-          products.push({
-            platform,
-            type,
-            title,
+          const newPriceEntry = {
             price: priceText,
             mrp: mrpText,
-            link,
             discount,
-            image: imgSrc || "",
             scrapedAt: new Date(),
-          });
-        }
-      });
+          };
 
-      console.log(`✅ Found ${products.length} valid deals from: ${url}`);
-      allProducts.push(...products);
+          const updatedProduct = await Product.findOneAndUpdate(
+            { productId: productId },
+            {
+              $set: {
+                title,
+                image: imgSrc || "",
+                link,
+                platform: "amazon",
+              },
+              $push: {
+                priceHistory: {
+                  $each: [newPriceEntry],
+                  $slice: -90,
+                },
+              },
+            },
+            {
+              upsert: true,
+              new: true,
+            }
+          );
+
+          console.log(chalk.green(`✅ Updated/Added: ${updatedProduct.title}`));
+          updatedProducts.push(updatedProduct);
+        }
+      }
     } catch (err) {
       console.error(`❌ Amazon Scrape failed for ${url} -`, err.message);
     }
   }
 
-  if (allProducts.length > 0) {
-    await saveDealsToMongo(allProducts);
-  }
-
-  return allProducts;
+  return updatedProducts;
 }

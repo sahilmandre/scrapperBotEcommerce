@@ -1,11 +1,12 @@
 // backend/server.js - Updated version with JioMart support
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import cron from "node-cron";
-import cors from "cors";
 import analyticsRouter from "./routes/analytics.js";
 import dealsRouter from "./routes/deals.js";
+import productsRouter from "./routes/products.js";
 import scrapeRouter from "./routes/scrape.js";
 import settingsRouter from "./routes/settings.js";
 import { scrapeAmazon } from "./scrapers/amazon.js";
@@ -77,6 +78,7 @@ app.use("/api/scrape", scrapeRouter);
 app.use("/api/deals", dealsRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/settings", settingsRouter);
+app.use("/api/products", productsRouter);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -88,3 +90,4 @@ app.listen(PORT, () => {
 });
 
 export { setupCronJob }; // Export for potential use in settings update
+
