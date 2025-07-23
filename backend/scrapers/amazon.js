@@ -36,9 +36,8 @@ export async function scrapeAmazon() {
       for (const el of $("div[data-asin]:has(h2)")) {
         const href = $(el).find("a.a-link-normal").attr("href");
 
-        // ✅ ADDED CHECK: Ignore elements with invalid or non-product links
         if (!href || href === "#" || !href.includes("/dp/")) {
-          continue; // Skip this element and move to the next one
+          continue;
         }
 
         const title = $(el).find("h2 span").text().trim();
@@ -80,37 +79,75 @@ export async function scrapeAmazon() {
             continue;
           }
 
-          const newPriceEntry = {
-            price: priceText,
-            mrp: mrpText,
-            discount,
-            scrapedAt: new Date(),
-          };
+          // ✅ --- NEW LOGIC TO STORE LOWEST PRICE OF THE DAY ---
 
-          const updatedProduct = await Product.findOneAndUpdate(
-            { productId: productId },
-            {
-              $set: {
-                title,
-                image: imgSrc || "",
-                link,
-                platform: "amazon",
-              },
-              $push: {
-                priceHistory: {
-                  $each: [newPriceEntry],
-                  $slice: -90,
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Get the beginning of today
+
+          // Step 1: Find the product and check if it has a price entry for today.
+          const product = await Product.findOne({
+            productId: productId,
+            "priceHistory.scrapedAt": { $gte: today },
+          });
+
+          // Case 1: An entry for today already exists.
+          if (product) {
+            const todaysEntry = product.priceHistory.find(
+              (h) => h.scrapedAt >= today
+            );
+            const existingPrice = parseFloat(cleanText(todaysEntry.price));
+
+            // Only update if the new price is lower than the existing price for today.
+            if (price < existingPrice) {
+              await Product.updateOne(
+                { "priceHistory._id": todaysEntry._id },
+                {
+                  $set: {
+                    "priceHistory.$.price": priceText,
+                    "priceHistory.$.mrp": mrpText,
+                    "priceHistory.$.discount": discount,
+                  },
+                }
+              );
+              console.log(
+                chalk.magenta(`🔄 Updated to new LOWEST price for: ${title}`)
+              );
+            } else {
+              console.log(
+                chalk.gray(`👍 Kept existing lower price for: ${title}`)
+              );
+            }
+          }
+          // Case 2: No entry for today exists. Add a new one.
+          else {
+            const newPriceEntry = {
+              price: priceText,
+              mrp: mrpText,
+              discount,
+              scrapedAt: new Date(),
+            };
+
+            const updatedProduct = await Product.findOneAndUpdate(
+              { productId: productId },
+              {
+                $set: { title, image: imgSrc || "", link, platform: "amazon" },
+                $push: {
+                  priceHistory: {
+                    $each: [newPriceEntry],
+                    $slice: -90,
+                  },
                 },
               },
-            },
-            {
-              upsert: true,
-              new: true,
-            }
-          );
+              { upsert: true, new: true }
+            );
 
-          console.log(chalk.green(`✅ Updated/Added: ${updatedProduct.title}`));
-          updatedProducts.push(updatedProduct);
+            console.log(
+              chalk.green(
+                `✅ Added new daily price for: ${updatedProduct.title}`
+              )
+            );
+            updatedProducts.push(updatedProduct);
+          }
         }
       }
     } catch (err) {

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import dotenv from "dotenv";
 import puppeteer from "puppeteer";
-import Product from "../models/product.js"; // Using the new Product model
+import Product from "../models/product.js";
 import {
   calculateDiscount,
   cleanText,
@@ -33,24 +33,17 @@ export async function scrapeFlipkart() {
       console.log(chalk.blue(`🔍 Scraping Flipkart [${type}]: ${url}`));
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-      // ✅ Using the proven selectors from your working version
       const productsOnPage = await page.evaluate(() => {
         const cards = document.querySelectorAll("div[data-id]");
         const items = [];
         cards.forEach((card) => {
-          const titleAnchor = card.querySelector("a.wjcEIp");
-          const title = titleAnchor?.innerText?.trim();
-
+          const title = card.querySelector("a.wjcEIp")?.innerText?.trim();
           const productAnchor = card.querySelector("a[href*='/p/']");
           const href = productAnchor?.getAttribute("href");
           const productUrl = href ? "https://www.flipkart.com" + href : null;
-
           const price = card.querySelector(".Nx9bqj")?.innerText;
           const mrp = card.querySelector(".yRaY8j")?.innerText;
-
-          const imgTag = card.querySelector("img");
-          const image = imgTag?.src;
-
+          const image = card.querySelector("img")?.src;
           if (title && price && mrp && productUrl) {
             items.push({ title, price, mrp, productUrl, image });
           }
@@ -80,36 +73,75 @@ export async function scrapeFlipkart() {
             continue;
           }
 
-          const newPriceEntry = {
-            price: item.price,
-            mrp: item.mrp,
-            discount,
-            scrapedAt: new Date(),
-          };
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
 
-          const updatedProduct = await Product.findOneAndUpdate(
-            { productId: productId },
-            {
-              $set: {
-                title: item.title,
-                image: item.image || "",
-                link: item.productUrl,
-                platform: "flipkart",
-              },
-              $push: {
-                priceHistory: {
-                  $each: [newPriceEntry],
-                  $slice: -90,
+          const product = await Product.findOne({
+            productId: productId,
+            "priceHistory.scrapedAt": { $gte: today },
+          });
+
+          if (product) {
+            const todaysEntry = product.priceHistory.find(
+              (h) => h.scrapedAt >= today
+            );
+            const existingPrice = parseFloat(cleanText(todaysEntry.price));
+
+            if (price < existingPrice) {
+              await Product.updateOne(
+                { "priceHistory._id": todaysEntry._id },
+                {
+                  $set: {
+                    "priceHistory.$.price": item.price,
+                    "priceHistory.$.mrp": item.mrp,
+                    "priceHistory.$.discount": discount,
+                  },
+                }
+              );
+              console.log(
+                chalk.magenta(
+                  `🔄 Updated to new LOWEST price for: ${item.title}`
+                )
+              );
+            } else {
+              console.log(
+                chalk.gray(`👍 Kept existing lower price for: ${item.title}`)
+              );
+            }
+          } else {
+            const newPriceEntry = {
+              price: item.price,
+              mrp: item.mrp,
+              discount,
+              scrapedAt: new Date(),
+            };
+
+            const updatedProduct = await Product.findOneAndUpdate(
+              { productId: productId },
+              {
+                $set: {
+                  title: item.title,
+                  image: item.image || "",
+                  link: item.productUrl,
+                  platform: "flipkart",
+                },
+                $push: {
+                  priceHistory: {
+                    $each: [newPriceEntry],
+                    $slice: -90,
+                  },
                 },
               },
-            },
-            { upsert: true, new: true }
-          );
+              { upsert: true, new: true }
+            );
 
-          console.log(
-            chalk.green(`✅ Updated/Added Flipkart: ${updatedProduct.title}`)
-          );
-          updatedProducts.push(updatedProduct);
+            console.log(
+              chalk.green(
+                `✅ Added new daily price for: ${updatedProduct.title}`
+              )
+            );
+            updatedProducts.push(updatedProduct);
+          }
         }
       }
     } catch (err) {

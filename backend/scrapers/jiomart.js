@@ -1,12 +1,13 @@
 import axios from "axios";
 import chalk from "chalk";
 import dotenv from "dotenv";
-import Product from "../models/product.js"; // ✅ Import the new Product model
+import Product from "../models/product.js";
 import {
   calculateDiscount,
+  cleanText,
   getDiscountThreshold,
   getScrapingUrls,
-  extractProductId, // ✅ Import our new ID extractor
+  extractProductId,
 } from "../utils/helpers.js";
 
 dotenv.config();
@@ -93,36 +94,79 @@ export async function scrapeJiomart() {
             continue;
           }
 
-          const newPriceEntry = {
-            price: `₹${price}`,
-            mrp: `₹${mrp}`,
-            discount,
-            scrapedAt: new Date(),
-          };
+          const priceText = `₹${price}`;
+          const mrpText = `₹${mrp}`;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
 
-          const updatedProduct = await Product.findOneAndUpdate(
-            { productId: productId },
-            {
-              $set: {
-                title: hit.display_name,
-                image: `https://www.jiomart.com/images/product/original/${hit.image_path}`,
-                link: link,
-                platform: "jiomart",
-              },
-              $push: {
-                priceHistory: {
-                  $each: [newPriceEntry],
-                  $slice: -90,
+          const product = await Product.findOne({
+            productId: productId,
+            "priceHistory.scrapedAt": { $gte: today },
+          });
+
+          if (product) {
+            const todaysEntry = product.priceHistory.find(
+              (h) => h.scrapedAt >= today
+            );
+            const existingPrice = parseFloat(cleanText(todaysEntry.price));
+
+            if (price < existingPrice) {
+              await Product.updateOne(
+                { "priceHistory._id": todaysEntry._id },
+                {
+                  $set: {
+                    "priceHistory.$.price": priceText,
+                    "priceHistory.$.mrp": mrpText,
+                    "priceHistory.$.discount": discount,
+                  },
+                }
+              );
+              console.log(
+                chalk.magenta(
+                  `🔄 Updated to new LOWEST price for: ${hit.display_name}`
+                )
+              );
+            } else {
+              console.log(
+                chalk.gray(
+                  `👍 Kept existing lower price for: ${hit.display_name}`
+                )
+              );
+            }
+          } else {
+            const newPriceEntry = {
+              price: priceText,
+              mrp: mrpText,
+              discount,
+              scrapedAt: new Date(),
+            };
+
+            const updatedProduct = await Product.findOneAndUpdate(
+              { productId: productId },
+              {
+                $set: {
+                  title: hit.display_name,
+                  image: `https://www.jiomart.com/images/product/original/${hit.image_path}`,
+                  link: link,
+                  platform: "jiomart",
+                },
+                $push: {
+                  priceHistory: {
+                    $each: [newPriceEntry],
+                    $slice: -90,
+                  },
                 },
               },
-            },
-            { upsert: true, new: true }
-          );
+              { upsert: true, new: true }
+            );
 
-          console.log(
-            chalk.green(`✅ Updated/Added JioMart: ${updatedProduct.title}`)
-          );
-          updatedProducts.push(updatedProduct);
+            console.log(
+              chalk.green(
+                `✅ Added new daily price for: ${updatedProduct.title}`
+              )
+            );
+            updatedProducts.push(updatedProduct);
+          }
         }
       }
     } catch (err) {
