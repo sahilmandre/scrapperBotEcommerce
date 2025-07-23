@@ -1,3 +1,5 @@
+// frontend/src/pages/SettingsPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useAllSettings, useUpdateAllSettings } from '../hooks/useSettings';
 

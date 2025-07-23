@@ -1,3 +1,6 @@
+// frontend/src/pages/DealsPage.jsx
+
+
 import React, { useState, useMemo } from 'react';
 import { useDeals } from '../hooks/useDeals';
 import { FixedSizeList as List } from 'react-window';

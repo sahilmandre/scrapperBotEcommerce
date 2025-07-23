@@ -1,3 +1,5 @@
+// frontend/src/pages/AnalyticsPage.jsx
+
 import React from 'react';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { Bar, Doughnut } from 'react-chartjs-2';

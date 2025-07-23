@@ -1,5 +1,3 @@
-//backend/routes/scrape.js
-
 import express from "express";
 import { scrapeFlipkart } from "../scrapers/flipkart.js";
 import { scrapeAmazon } from "../scrapers/amazon.js";
@@ -29,14 +27,16 @@ router.get("/:platform", async (req, res) => {
         scrapeAmazon(),
         scrapeJiomart(),
       ]);
-      data = [...flipkartData, ...amazonData, ...jiomartData];
 
+      // The data is already structured perfectly. We'll return this object.
       return res.json({
-        message: "✅ Scraping complete",
-        amazon: amazonData.length,
-        flipkart: flipkartData.length,
-        jiomart: jiomartData.length,
-        total: data.length,
+        message: "✅ All scraping complete",
+        results: {
+          flipkart: flipkartData.length,
+          amazon: amazonData.length,
+          jiomart: jiomartData.length,
+        },
+        total: flipkartData.length + amazonData.length + jiomartData.length,
       });
     } else {
       return res.status(400).json({
@@ -49,10 +49,10 @@ router.get("/:platform", async (req, res) => {
       return res.status(404).json({ message: "❌ No products found" });
     }
 
+    // Response for single scrapes
     res.json({
-      message: `✅ ${platform} scrape complete`,
+      message: `✅ ${platform} scrape complete. Found ${data.length} deals.`,
       count: data.length,
-      products: data,
     });
   } catch (err) {
     console.error("❌ Scrape error:", err.message);
