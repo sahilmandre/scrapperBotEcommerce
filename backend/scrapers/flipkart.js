@@ -125,6 +125,8 @@ export async function scrapeFlipkart() {
                   link: item.productUrl,
                   platform: "flipkart",
                 },
+                // ✅ This line ensures the category is saved on creation
+                $setOnInsert: { type: type },
                 $push: {
                   priceHistory: {
                     $each: [newPriceEntry],

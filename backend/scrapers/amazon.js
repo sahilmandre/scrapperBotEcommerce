@@ -23,28 +23,28 @@ export async function scrapeAmazon() {
   for (const { url, type } of urls.filter((u) => u.platform === "amazon")) {
     try {
       console.log(chalk.blue(`🔍 Scraping Amazon [${type}]: ${url}`));
-
       const { data: html } = await axios.get(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
           "Accept-Language": "en-US,en;q=0.9",
         },
       });
-
       const $ = cheerio.load(html);
 
       for (const el of $("div[data-asin]:has(h2)")) {
         const href = $(el).find("a.a-link-normal").attr("href");
-
-        if (!href || href === "#" || !href.includes("/dp/")) {
+        // Combining checks to be more robust
+        if (
+          !href ||
+          href === "#" ||
+          (!href.includes("/dp/") && !href.startsWith("/sspa/click"))
+        )
           continue;
-        }
 
         const title = $(el).find("h2 span").text().trim();
         const link = href.startsWith("http")
           ? href
           : `https://www.amazon.in${href}`;
-
         const priceText = $(el)
           .find(".a-price .a-offscreen")
           .first()
@@ -57,13 +57,12 @@ export async function scrapeAmazon() {
           .first()
           .text()
           .trim();
-        if (!mrpText) {
+        if (!mrpText)
           mrpText = $(el)
             .find(".a-price.a-text-price .a-offscreen")
             .last()
             .text()
             .trim();
-        }
 
         const price = parseInt(cleanText(priceText));
         const mrp = parseInt(cleanText(mrpText));
@@ -79,7 +78,7 @@ export async function scrapeAmazon() {
             continue;
           }
 
-          // ✅ --- NEW LOGIC TO STORE LOWEST PRICE OF THE DAY ---
+          // ✅ --- LOGIC TO STORE LOWEST PRICE OF THE DAY ---
 
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Get the beginning of today
@@ -131,6 +130,7 @@ export async function scrapeAmazon() {
               { productId: productId },
               {
                 $set: { title, image: imgSrc || "", link, platform: "amazon" },
+                $setOnInsert: { type: type },
                 $push: {
                   priceHistory: {
                     $each: [newPriceEntry],
@@ -154,6 +154,6 @@ export async function scrapeAmazon() {
       console.error(`❌ Amazon Scrape failed for ${url} -`, err.message);
     }
   }
-
   return updatedProducts;
 }
+

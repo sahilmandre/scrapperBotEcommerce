@@ -150,6 +150,8 @@ export async function scrapeJiomart() {
                   link: link,
                   platform: "jiomart",
                 },
+                // ✅ This line ensures the category is saved on creation
+                $setOnInsert: { type: type },
                 $push: {
                   priceHistory: {
                     $each: [newPriceEntry],
