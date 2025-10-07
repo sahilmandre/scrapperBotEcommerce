@@ -2,6 +2,7 @@ import express from "express";
 import { scrapeFlipkart } from "../scrapers/flipkart.js";
 import { scrapeAmazon } from "../scrapers/amazon.js";
 import { scrapeJiomart } from "../scrapers/jiomart.js";
+import { getSetting } from "../utils/settings.js"; // ✅ Import getSetting
 import chalk from "chalk";
 
 const router = express.Router();
@@ -11,24 +12,25 @@ router.get("/:platform", async (req, res) => {
   let data = [];
 
   try {
+    const pincode = await getSetting("PINCODE"); // ✅ Fetch pincode
+
     if (platform === "flipkart") {
       console.log(chalk.blue("🛒 Scraping Flipkart..."));
-      data = await scrapeFlipkart();
+      data = await scrapeFlipkart(pincode); // ✅ Pass pincode
     } else if (platform === "amazon") {
       console.log(chalk.yellow("📦 Scraping Amazon..."));
-      data = await scrapeAmazon();
+      data = await scrapeAmazon(pincode); // ✅ Pass pincode
     } else if (platform === "jiomart") {
       console.log(chalk.magenta("🏪 Scraping JioMart..."));
-      data = await scrapeJiomart();
+      data = await scrapeJiomart(pincode); // ✅ Pass pincode
     } else if (platform === "all") {
       console.log(chalk.cyan("🔁 Scraping Amazon, Flipkart & JioMart..."));
       const [flipkartData, amazonData, jiomartData] = await Promise.all([
-        scrapeFlipkart(),
-        scrapeAmazon(),
-        scrapeJiomart(),
+        scrapeFlipkart(pincode), // ✅ Pass pincode
+        scrapeAmazon(pincode), // ✅ Pass pincode
+        scrapeJiomart(pincode), // ✅ Pass pincode
       ]);
 
-      // The data is already structured perfectly. We'll return this object.
       return res.json({
         message: "✅ All scraping complete",
         results: {
@@ -46,12 +48,15 @@ router.get("/:platform", async (req, res) => {
     }
 
     if (!data || data.length === 0) {
-      return res.status(404).json({ message: "❌ No products found" });
+      return res
+        .status(200)
+        .json({
+          message: `✅ ${platform} scrape complete. No new high-discount products found.`,
+        });
     }
 
-    // Response for single scrapes
     res.json({
-      message: `✅ ${platform} scrape complete. Found ${data.length} deals.`,
+      message: `✅ ${platform} scrape complete. Found ${data.length} new deals.`,
       count: data.length,
     });
   } catch (err) {

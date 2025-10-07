@@ -13,7 +13,8 @@ import {
 
 dotenv.config();
 
-export async function scrapeFlipkart() {
+export async function scrapeFlipkart(pincode) {
+  // ✅ Accept pincode
   const threshold = await getDiscountThreshold();
   const headless = await getHeadlessSetting();
   const urls = await getScrapingUrls();
@@ -22,6 +23,7 @@ export async function scrapeFlipkart() {
     chalk.blue(`🎯 Flipkart: Using discount threshold: ${threshold}%`)
   );
   console.log(chalk.blue(`🤖 Flipkart: Headless mode: ${headless}`));
+  console.log(chalk.blue(`🎯 Flipkart: Using pincode: ${pincode}`)); // Log the pincode
 
   const browser = await puppeteer.launch({ headless });
   const page = await browser.newPage();
@@ -125,7 +127,6 @@ export async function scrapeFlipkart() {
                   link: item.productUrl,
                   platform: "flipkart",
                 },
-                // ✅ This line ensures the category is saved on creation
                 $setOnInsert: { type: type },
                 $push: {
                   priceHistory: {

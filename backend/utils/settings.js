@@ -40,8 +40,8 @@ const DEFAULT_SETTINGS = {
   DISCOUNT_THRESHOLD: parseInt(process.env.DISCOUNT_THRESHOLD || "80"),
   HEADLESS: process.env.HEADLESS !== "false",
   SCRAPE_INTERVAL: 30, // minutes
-  // ✅ ADD THIS NEW SETTING
   PRODUCT_TYPES: originalProductTypes,
+  PINCODE: "452001", // ✅ ADD THIS NEW SETTING
 };
 
 // Cache for frequently accessed settings
@@ -144,7 +144,7 @@ export async function initializeSettings() {
       const existing = await Settings.findOne({ key });
       if (!existing) {
         await setSetting(key, value);
-        console.log(`✅ Initialized ${key}: ${value}`);
+        console.log(`✅ Initialized ${key}: ${JSON.stringify(value)}`);
       }
     }
 

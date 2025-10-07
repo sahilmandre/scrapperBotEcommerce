@@ -1,3 +1,5 @@
+// backend/routes/settings.js
+
 import express from "express";
 import { getAllSettings, getSetting, setSetting } from "../utils/settings.js";
 
@@ -42,7 +44,6 @@ router.put("/:key", async (req, res) => {
     }
 
     // --- Validation Logic ---
-    // Validate DISCOUNT_THRESHOLD
     if (key === "DISCOUNT_THRESHOLD") {
       const numValue = parseInt(value);
       if (isNaN(numValue) || numValue < 0 || numValue > 100) {
@@ -52,15 +53,23 @@ router.put("/:key", async (req, res) => {
       }
     }
 
-    // ✅ NEW: Validate PRODUCT_TYPES
     if (key === "PRODUCT_TYPES") {
       if (
         !Array.isArray(value) ||
-        !value.every((item) => typeof item === "string")
+        !value.every((item) => typeof item === "string" && item.trim() !== "")
       ) {
         return res.status(400).json({
           error: "PRODUCT_TYPES must be an array of non-empty strings.",
         });
+      }
+    }
+
+    // ✅ NEW: Validate PINCODE
+    if (key === "PINCODE") {
+      if (typeof value !== "string" || !/^\d{6}$/.test(value)) {
+        return res
+          .status(400)
+          .json({ error: "Pincode must be a 6-digit string." });
       }
     }
     // --- End Validation ---
@@ -91,23 +100,29 @@ router.put("/", async (req, res) => {
 
     for (const [key, value] of Object.entries(settingsToUpdate)) {
       // --- Validation Logic ---
-      // Validate DISCOUNT_THRESHOLD
       if (key === "DISCOUNT_THRESHOLD") {
         const numValue = parseInt(value);
         if (isNaN(numValue) || numValue < 0 || numValue > 100) {
           errors[key] = "Must be a number between 0 and 100";
-          continue; // Skip to the next setting
+          continue;
         }
       }
 
-      // ✅ NEW: Validate PRODUCT_TYPES
       if (key === "PRODUCT_TYPES") {
         if (
           !Array.isArray(value) ||
-          !value.every((item) => typeof item === "string")
+          !value.every((item) => typeof item === "string" && item.trim() !== "")
         ) {
-          errors[key] = "Must be an array of strings.";
-          continue; // Skip to the next setting
+          errors[key] = "Must be an array of non-empty strings.";
+          continue;
+        }
+      }
+
+      // ✅ NEW: Validate PINCODE
+      if (key === "PINCODE") {
+        if (typeof value !== "string" || !/^\d{6}$/.test(value)) {
+          errors[key] = "Must be a 6-digit string.";
+          continue;
         }
       }
       // --- End Validation ---
@@ -120,11 +135,16 @@ router.put("/", async (req, res) => {
       }
     }
 
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: "Settings update failed with validation errors.",
+        errors,
+      });
+    }
+
     res.json({
       message: "Settings update complete",
       updated: results,
-      // Only include the errors object if there were errors
-      ...(Object.keys(errors).length > 0 && { errors }),
     });
   } catch (error) {
     console.error("❌ Error updating settings:", error);

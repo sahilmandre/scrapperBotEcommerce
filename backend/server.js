@@ -12,7 +12,7 @@ import settingsRouter from "./routes/settings.js";
 import { scrapeAmazon } from "./scrapers/amazon.js";
 import { scrapeFlipkart } from "./scrapers/flipkart.js";
 import { scrapeJiomart } from "./scrapers/jiomart.js";
-import { initializeSettings } from "./utils/settings.js";
+import { initializeSettings, getSetting } from "./utils/settings.js"; // ✅ Import getSetting
 
 dotenv.config();
 
@@ -32,9 +32,8 @@ mongoose
   })
   .then(async () => {
     console.log("✅ Connected to MongoDB");
-
-    // Initialize settings after DB connection
     await initializeSettings();
+    await setupCronJob(); // Setup cron job after settings are initialized
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
@@ -43,35 +42,29 @@ let currentCronJob = null;
 
 async function setupCronJob() {
   try {
-    // Dynamic import to avoid circular dependency
-    const { getSetting } = await import("./utils/settings.js");
     const interval = await getSetting("SCRAPE_INTERVAL", 30);
+    const pincode = await getSetting("PINCODE"); // ✅ Fetch pincode
 
-    // Clear existing cron job
     if (currentCronJob) {
-      currentCronJob.destroy();
+      currentCronJob.stop();
     }
 
-    // Setup new cron job with dynamic interval
-    const cronExpression = `*/${interval} * * * *`; // every X minutes
+    const cronExpression = `*/${interval} * * * *`;
     currentCronJob = cron.schedule(cronExpression, async () => {
       console.log("⏱️ Running scheduled scraping task...");
       await Promise.all([
-        scrapeAmazon(),
-        scrapeFlipkart(),
-        scrapeJiomart(), // Added JioMart to scheduled scraping
+        scrapeAmazon(pincode), // ✅ Pass pincode
+        scrapeFlipkart(pincode), // ✅ Pass pincode
+        scrapeJiomart(pincode), // ✅ Pass pincode
       ]);
-      console.log("✅ Scraping completed.");
+      console.log("✅ Scheduled scraping completed.");
     });
 
-    console.log(`🕒 Cron job scheduled to run every ${interval} minutes`);
+    console.log(`🕒 Cron job scheduled to run every ${interval} minutes.`);
   } catch (error) {
     console.error("❌ Error setting up cron job:", error);
   }
 }
-
-// Setup initial cron job
-setupCronJob();
 
 // API Routes
 app.use("/api/scrape", scrapeRouter);
@@ -89,5 +82,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-export { setupCronJob }; // Export for potential use in settings update
-
+export { setupCronJob };

@@ -16,12 +16,14 @@ const ALGOLIA_APP_ID = "3YP0HP3WSH";
 const ALGOLIA_API_KEY = "aace3f18430a49e185d2c1111602e4b1";
 const ALGOLIA_INDEX_NAME = "prod_mart_master_vertical";
 
-export async function scrapeJiomart() {
+export async function scrapeJiomart(pincode) {
+  // ✅ Accept pincode
   const threshold = await getDiscountThreshold();
   const urls = await getScrapingUrls();
   console.log(
     chalk.blue(`🎯 JioMart: Using discount threshold: ${threshold}%`)
   );
+  console.log(chalk.blue(`🎯 JioMart: Using pincode: ${pincode}`)); // Log the pincode
 
   const updatedProducts = [];
 

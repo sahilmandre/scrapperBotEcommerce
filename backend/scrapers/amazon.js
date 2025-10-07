@@ -13,26 +13,23 @@ import {
 
 dotenv.config();
 
-// ✅ Helper function to create a delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// ✅ List of common User-Agent strings to rotate through
 const userAgents = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/108.0',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:108.0) Gecko/20100101 Firefox/108.0',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0',
-  'Mozilla/5.0 (X11; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0'
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/108.0",
 ];
 
-export async function scrapeAmazon() {
+export async function scrapeAmazon(pincode) {
+  // ✅ Accept pincode
   const threshold = await getDiscountThreshold();
   const urls = await getScrapingUrls();
   console.log(chalk.blue(`🎯 Amazon: Using discount threshold: ${threshold}%`));
+  console.log(chalk.blue(`🎯 Amazon: Using pincode: ${pincode}`)); // Log the pincode
 
   const updatedProducts = [];
-  const maxPages = 2; // Scrape up to 3 pages
+  const maxPages = 2;
 
   for (const { url, type } of urls.filter((u) => u.platform === "amazon")) {
     for (let page = 1; page <= maxPages; page++) {
@@ -50,9 +47,10 @@ export async function scrapeAmazon() {
           headers: {
             "User-Agent": randomUserAgent,
             "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-            "Referer": "https://www.amazon.in/",
-            "DNT": "1"
+            Accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            Referer: "https://www.amazon.in/",
+            DNT: "1",
           },
         });
 
@@ -187,10 +185,13 @@ export async function scrapeAmazon() {
         );
       }
 
-      // Add a random delay before the next page request to avoid being blocked
       if (page < maxPages) {
-        const randomDelay = Math.floor(Math.random() * 3000) + 2000; // Delay between 2-5 seconds
-        console.log(chalk.gray(`Waiting for ${randomDelay / 1000} seconds before next page...`));
+        const randomDelay = Math.floor(Math.random() * 3000) + 2000;
+        console.log(
+          chalk.gray(
+            `Waiting for ${randomDelay / 1000} seconds before next page...`
+          )
+        );
         await delay(randomDelay);
       }
     }
