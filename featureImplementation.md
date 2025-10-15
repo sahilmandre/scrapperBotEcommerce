@@ -1,85 +1,103 @@
-Implementation Plan: Pincode-Based Search
-This document outlines the step-by-step plan to implement a pincode-based search feature in the web scraping application. This will allow the scrapers to fetch only products available at a user-specified pincode.
+Implementation Plan: Multi-Platform Expansion
+This plan outlines the strategy to expand the Scrapper Bot to include quick commerce (Zepto, Blinkit, Swiggy Instamart) and food delivery (Zomato, Swiggy Food) platforms.
 
-Phase 1: Backend Foundation
-Objective: To create a persistent storage for the pincode that the scrapers can access.
+Phase 1: Architectural Refactoring & Generalization
+Objective: To adapt the backend and data models to support different types of deals.
 
-Update the Settings Schema:
+Step 1.1: Create a New Data Model for Food Deals
 
-File: backend/models/settings.js
+File: backend/models/foodDealModel.js (New File)
 
-Action: Add a new pincode field of type String to the settingsSchema. This will allow us to store the pincode in the MongoDB database.
+Action: Create a new Mongoose schema for food deals with fields like dishName, restaurantName, rating, price, platform, etc.
 
-Update the Settings API:
+Step 1.2: Create New API Routes for Food Deals
 
-File: backend/routes/settings.js
+File: backend/routes/foodDealRoute.js (New File)
 
-Action: Modify the POST endpoint to accept and update the new pincode value in the database.
+Action: Create a new Express router to handle API requests for food deals (e.g., GET /api/foodDeals).
 
-Pass Pincode to Scrapers:
+File: backend/server.js
 
-Files: backend/server.js (for scheduled scrapes) and backend/routes/scrape.js (for manual scrapes).
+Action: Import and use the new foodDealRouter as /api/foodDeals.
 
-Action: In both files, before triggering a scraper, fetch the latest settings (including the pincode) from the database. Then, pass the pincode as an argument to the respective scraper function (e.g., scrapeAmazon(urls, pincode)).
+Step 1.3: Differentiate Scraper Types
 
-Phase 2: Frontend Integration
-Objective: To allow the pincode to be easily viewed and changed from the web interface.
+File: backend/utils/scraperUtil.js (Renaming helpers.js)
 
-Create Pincode Input Field:
+Action: Modify the URL generation logic to handle different search categories (products, cuisines) and associate them with specific scrapers.
 
-File: frontend/src/pages/SettingsPage.jsx
+Step 1.4: Update the Frontend for New Categories
 
-Action: Add a new labeled input field on the Settings page for entering the pincode.
+File: frontend/src/App.jsx
 
-Connect UI to the API:
+Action: Add a new route /food-deals for the food deals page.
 
-File: frontend/src/hooks/useSettings.js
+File: frontend/src/components/Navbar.jsx
 
-Action: Update the updateSettings mutation logic to include the pincode in the payload sent to the backend.
+Action: Add a "Food Deals" link to the navigation bar.
 
-File: frontend/src/pages/SettingsPage.jsx
+File: frontend/src/pages/FoodDealsPage.jsx (New File)
 
-Action:
+Action: Create a new page component to display the scraped food deals.
 
-Fetch the current settings and display the saved pincode in the input field.
+Phase 2: Implement Quick Commerce Scrapers (Zepto, Blinkit, Instamart)
+Objective: To add new quick commerce platforms, which will use the existing product data model.
 
-Manage the state of the input field.
+Step 2.1: Research Scraping Methods
 
-On "Save," call the updateSettings mutation with the new pincode.
+Action: Investigate each platform (starting with Zepto) to determine the best scraping strategy (API vs. Puppeteer).
 
-Phase 3: Scraper Intelligence
-Objective: To make each scraper use the provided pincode to get location-specific results.
+Step 2.2: Implement the First Quick Commerce Scraper
 
-Amazon Scraper (backend/scrapers/amazon.js):
+File: backend/scrapers/zeptoScraper.js (New File)
 
-Investigation: Determine the sequence of Puppeteer actions required to set the delivery pincode on Amazon's website.
+Action: Create the new scraper, including logic for location handling. Save data to the existing Product model.
 
-Implementation:
+Step 2.3: Integrate the New Scraper
 
-Launch Puppeteer and navigate to Amazon.
+File: backend/routes/scrapeRoute.js & backend/server.js
 
-Automate clicks to open the "Deliver to" location widget.
+Action: Add the scrapeZepto function to the scraping triggers.
 
-Enter the pincode into the relevant input field and submit.
+File: frontend/src/pages/HomePage.jsx
 
-Wait for the page to reload with the new location.
+Action: Add a "Scrape Zepto" button.
 
-Proceed with the existing product scraping logic.
+Step 2.4: Repeat for Other Platforms
 
-Flipkart Scraper (backend/scrapers/flipkart.js):
+Action: Once Zepto is stable, repeat the process for Blinkit and Swiggy Instamart, creating blinkitScraper.js and swiggyInstamartScraper.js respectively.
 
-Investigation: Find the specific selectors and user interactions for setting a pincode on Flipkart.
+Phase 3: Implement Food Delivery Scrapers (Zomato, Swiggy Food)
+Objective: To add food delivery platforms using the new food data model.
 
-Implementation: Update the Puppeteer script to automatically find and fill in the pincode on Flipkart before it starts scraping.
+Step 3.1: Research Scraping Methods
 
-JioMart Scraper (backend/scrapers/jiomart.js):
+Action: Investigate Zomato and Swiggy for the most reliable scraping approach.
 
-Investigation: Check if the Algolia API (currently in use) accepts a pincode or location parameter.
+Step 3.2: Implement the First Food Scraper
 
-Implementation:
+File: backend/scrapers/zomatoScraper.js (New File)
 
-If API supports pincode: Add the pincode as a parameter to the API request. This is the preferred, most efficient method.
+Action: Create the new scraper. It will need to handle address setting, search for restaurants/dishes, and save the data to the foodDealModel.js collection.
 
-If API does not support pincode: Refactor the scraper to use Puppeteer, similar to the Amazon and Flipkart scrapers, to set the location on the JioMart website first.
+Step 3.3: Integrate and Display the Data
 
-This structured plan ensures that we build the feature methodically, from the database layer up to the user interface and scraper logic. We will proceed with these phases in order.
+File: backend/routes/scrapeRoute.js & backend/server.js
+
+Action: Add the scrapeZomato function to the triggers.
+
+File: frontend/src/pages/HomePage.jsx
+
+Action: Add a "Scrape Zomato" button.
+
+File: frontend/src/hooks/useFoodDeals.js (New File)
+
+Action: Create a new React Query hook to fetch data from /api/foodDeals.
+
+File: frontend/src/pages/FoodDealsPage.jsx
+
+Action: Use the new hook to display the Zomato deals.
+
+Step 3.4: Repeat for Swiggy Food
+
+Action: Once Zomato is complete, replicate the process for Swiggy Food, creating swiggyFoodScraper.js.
