@@ -448,6 +448,7 @@ const DealsPage = () => {
                 <MenuItem value="flipkart">Flipkart</MenuItem>
                 <MenuItem value="amazon">Amazon</MenuItem>
                 <MenuItem value="jiomart">JioMart</MenuItem>
+                <MenuItem value="zepto">Zepto</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -588,6 +589,8 @@ const getPlatformChipStyle = (platform) => {
       return { backgroundColor: "#2874F0", color: "white" };
     case "jiomart":
       return { backgroundColor: "#D32F2F", color: "white" };
+    case "zepto":
+      return { backgroundColor: "#4CAF50", color: "white" };
     default:
       return { backgroundColor: "#e0e0e0", color: "black" };
   }
