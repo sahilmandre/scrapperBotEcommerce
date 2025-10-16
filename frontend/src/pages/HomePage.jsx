@@ -6,6 +6,8 @@ const ScrapeButton = ({ platform, onScrape, loading }) => {
     flipkart: 'btn-primary',
     amazon: 'btn-warning text-dark',
     jiomart: 'btn-danger',
+    // ✅ New Platform Style
+    zepto: 'btn-info',
     all: 'btn-success'
   };
   const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
@@ -91,6 +93,8 @@ const HomePage = () => {
               <ScrapeButton platform="flipkart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
               <ScrapeButton platform="amazon" onScrape={handleScrape} loading={scrapeMutation.isPending} />
               <ScrapeButton platform="jiomart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
+
+            <ScrapeButton platform="zepto" onScrape={handleScrape} loading={scrapeMutation.isPending} />
               <ScrapeButton platform="all" onScrape={handleScrape} loading={scrapeMutation.isPending} />
             </div>
           </div>
