@@ -1,7 +1,14 @@
 // backend/scrapers/zeptoScraper.js
 import chalk from "chalk";
 import puppeteer from "puppeteer";
-import { getHeadlessSetting } from "../utils/helpers.js"; // Import getSetting
+import Product from "../models/product.js";
+import {
+  getHeadlessSetting,
+  getDiscountThreshold,
+  calculateDiscount,
+  cleanText,
+  extractProductId,
+} from "../utils/helpers.js";
 import { getSetting } from "../utils/settings.js";
 
 // --- SELECTORS FOR ZEPTO ---
@@ -9,19 +16,23 @@ const SELECTORS = {
   locationButton: 'button[aria-label="Select Location"]',
   enableLocationButton: "button.cpG2SV.cVzWKq.cimLEg",
   locationConfirmation: '[data-testid="search-bar-icon"]',
-  // searchInput: 'input[placeholder="Search for over 5000 products"]',
+  productCard: '[data-testid="product-card-wrapper"]',
+  // Selectors for scraping (will be used in the next step)
+  productTitle: '[data-testid="product-card-wrapper"] h4',
+  productImage: '[data-testid="product-card-wrapper"] img',
+  productPrice: '[data-testid="price-wrapper"]',
+  productMrp: '[data-testid="price-wrapper"] .gMWGMV',
 };
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// The pincode argument is no longer needed
 export async function scrapeZepto() {
   const headless = await getHeadlessSetting();
-
-  // --- DYNAMIC LOCATION SETUP ---
-  // Fetch coordinates directly from settings
   const latitude = await getSetting("ZEPTO_LATITUDE", 22.7196);
   const longitude = await getSetting("ZEPTO_LONGITUDE", 75.8577);
+  const productTypes = await getSetting("PRODUCT_TYPES", []);
+  const threshold = await getDiscountThreshold();
+  const updatedProducts = [];
 
   console.log(chalk.cyan("🚀 Starting Zepto Scraper..."));
   console.log(chalk.blue(`🤖 Headless mode: ${headless}`));
@@ -46,48 +57,71 @@ export async function scrapeZepto() {
     const zeptoOrigin = "https://www.zeptonow.com";
 
     await context.overridePermissions(zeptoOrigin, ["geolocation"]);
-    console.log(chalk.yellow("✅ Geolocation permission granted for Zepto."));
-
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
-
-    // Use the dynamic coordinates from settings
     await page.setGeolocation({ latitude, longitude });
-    console.log(
-      chalk.yellow(`📍 Geolocation set to (${latitude}, ${longitude}).`)
-    );
 
     console.log(chalk.blue("Navigating to Zepto website..."));
     await page.goto(zeptoOrigin, { waitUntil: "networkidle2" });
 
+    // --- Location Setting ---
     await page.waitForSelector(SELECTORS.locationButton, {
       visible: true,
       timeout: 15000,
     });
     await page.click(SELECTORS.locationButton);
-    console.log(chalk.green("✅ Clicked 'Select Location' button."));
     await delay(1000);
-
     await page.waitForSelector(SELECTORS.enableLocationButton, {
       visible: true,
       timeout: 10000,
     });
     await page.click(SELECTORS.enableLocationButton);
-    console.log(chalk.green("✅ Clicked 'Enable' button inside the modal."));
-
     await page.waitForSelector(SELECTORS.locationConfirmation, {
       visible: true,
       timeout: 20000,
     });
-
     console.log(chalk.green.bold("✅ Successfully set location on Zepto!"));
-    console.log(
-      chalk.gray(
-        "Scraper is now ready for search and product extraction steps."
-      )
-    );
 
+    // ✅ ADDED DELAY: Wait for 5 seconds to ensure the page state updates.
+    console.log(
+      chalk.gray("Pausing for 5 seconds to ensure location is fully set...")
+    );
     await delay(5000);
+
+    // --- Search Loop ---
+    for (const type of productTypes) {
+      console.log(chalk.yellow(`\n🔍 Searching for category: "${type}"`));
+
+      const searchUrl = `${zeptoOrigin}/search?query=${encodeURIComponent(
+        type
+      )}`;
+      console.log(chalk.blue(`Navigating to search URL: ${searchUrl}`));
+      await page.goto(searchUrl, { waitUntil: "networkidle2" });
+
+      console.log(chalk.gray(`Waiting for search results for "${type}"...`));
+      await page.waitForSelector(SELECTORS.productCard, { timeout: 15000 });
+      console.log(
+        chalk.green(
+          `✅ Search successful. Product cards are visible for "${type}".`
+        )
+      );
+
+      await delay(3000); // Pause to observe the results
+
+      /*
+      // --- STEP 3: SCRAPE AND SAVE (Commented out for now) ---
+      
+      const productsOnPage = await page.evaluate((selectors) => {
+        // ... scraping logic will go here ...
+      }, SELECTORS);
+
+      console.log(chalk.gray(`Found ${productsOnPage.length} products for "${type}".`));
+
+      for (const item of productsOnPage) {
+        // ... processing and saving logic will go here ...
+      }
+      */
+    }
   } catch (err) {
     console.error(chalk.red("❌ Zepto Scrape failed -"), err.message);
   } finally {
@@ -97,6 +131,6 @@ export async function scrapeZepto() {
     }
   }
 
-  return [];
+  return updatedProducts;
 }
 
