@@ -8,6 +8,7 @@ const ScrapeButton = ({ platform, onScrape, loading }) => {
     jiomart: 'btn-danger',
     // ✅ New Platform Style
     zepto: 'btn-info',
+    instamart: 'btn-warning', // 1. Add color for the new button
     all: 'btn-success'
   };
   const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
@@ -68,51 +69,53 @@ const HomePage = () => {
         );
       }
 
-          // Fallback for single scrape messages
-          if (scrapeResult.message) {
-            return <div className="alert alert-success mt-4">{scrapeResult.message}</div>;
-          }
+      // Fallback for single scrape messages
+      if (scrapeResult.message) {
+        return <div className="alert alert-success mt-4">{scrapeResult.message}</div>;
       }
+    }
 
-      return null;
-    };
+    return null;
+  };
 
   return (
-      <div className="container py-5">
-        <div className="text-center">
-          <h1 className="display-4 fw-bold">Welcome to Scrapper Bot</h1>
-          <p className="lead text-muted mt-3">
-            Use the buttons below to start scraping deals from different platforms.
-          </p>
-        </div>
+    <div className="container py-5">
+      <div className="text-center">
+        <h1 className="display-4 fw-bold">Welcome to Scrapper Bot</h1>
+        <p className="lead text-muted mt-3">
+          Use the buttons below to start scraping deals from different platforms.
+        </p>
+      </div>
 
-        <div className="card shadow-sm mt-5">
-          <div className="card-body p-4">
-            <h5 className="card-title mb-3">Manual Scraping</h5>
-            <div className="d-flex flex-wrap justify-content-start">
-              <ScrapeButton platform="flipkart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
-              <ScrapeButton platform="amazon" onScrape={handleScrape} loading={scrapeMutation.isPending} />
-              <ScrapeButton platform="jiomart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
+      <div className="card shadow-sm mt-5">
+        <div className="card-body p-4">
+          <h5 className="card-title mb-3">Manual Scraping</h5>
+          <div className="d-flex flex-wrap justify-content-start">
+            <ScrapeButton platform="flipkart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
+            <ScrapeButton platform="amazon" onScrape={handleScrape} loading={scrapeMutation.isPending} />
+            <ScrapeButton platform="jiomart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
 
             <ScrapeButton platform="zepto" onScrape={handleScrape} loading={scrapeMutation.isPending} />
-              <ScrapeButton platform="all" onScrape={handleScrape} loading={scrapeMutation.isPending} />
-            </div>
+            <ScrapeButton platform="instamart" onScrape={handleScrape} loading={scrapeMutation.isPending} /> {/* 2. Add the new button */}
+
+            <ScrapeButton platform="all" onScrape={handleScrape} loading={scrapeMutation.isPending} />
           </div>
         </div>
-
-        <div className="mt-4">
-          {/* Show a loading indicator while scraping */}
-          {scrapeMutation.isPending && (
-            <div className="d-flex justify-content-center">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          )}
-          {renderResults()}
-        </div>
       </div>
-    );
+
+      <div className="mt-4">
+        {/* Show a loading indicator while scraping */}
+        {scrapeMutation.isPending && (
+          <div className="d-flex justify-content-center">
+            <div className="spinner-border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        )}
+        {renderResults()}
+      </div>
+    </div>
+  );
 };
 
 export default HomePage;

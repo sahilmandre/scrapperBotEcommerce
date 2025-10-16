@@ -12,7 +12,8 @@ import settingsRouter from "./routes/settings.js";
 import { scrapeAmazon } from "./scrapers/amazon.js";
 import { scrapeFlipkart } from "./scrapers/flipkart.js";
 import { scrapeJiomart } from "./scrapers/jiomart.js";
-import { initializeSettings, getSetting } from "./utils/settings.js"; // ✅ Import getSetting
+import { getSetting, initializeSettings } from "./utils/settings.js"; // ✅ Import getSetting
+import { scrapeInstamart } from "./scrapers/swiggyInstamartScraper.js"; // 1. Import the new scraper
 import { scrapeZepto } from "./scrapers/zeptoScraper.js";
 
 dotenv.config();
@@ -58,6 +59,7 @@ async function setupCronJob() {
         scrapeFlipkart(pincode), // ✅ Pass pincode
         scrapeJiomart(pincode), // ✅ Pass pincode
         scrapeZepto(), // No pincode needed
+        scrapeInstamart(), // 2. Add the new scraper to the scheduled job
       ]);
       console.log("✅ Scheduled scraping completed.");
     });
@@ -85,3 +87,4 @@ app.listen(PORT, () => {
 });
 
 export { setupCronJob };
+
