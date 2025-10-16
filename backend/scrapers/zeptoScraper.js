@@ -15,7 +15,6 @@ const SELECTORS = {
   locationButton: 'button[aria-label="Select Location"]',
   enableLocationButton: "button.cpG2SV.cVzWKq.cimLEg",
   locationConfirmation: '[data-testid="search-bar-icon"]',
-  // Selectors for scraping from the search results page
   productLink: 'a[href^="/pn/"]', // The anchor tag that wraps the entire product card
   productTitle: '[data-slot-id="ProductName"]',
   productImage: "img.c2ahfT",
@@ -24,6 +23,28 @@ const SELECTORS = {
 };
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Automatically scrolls to the bottom of the page to trigger infinite scroll loading.
+ * @param {import('puppeteer').Page} page The Puppeteer page object.
+ */
+async function autoScroll(page) {
+  console.log(chalk.gray("🔄 Scrolling to load all products..."));
+  let lastHeight = await page.evaluate("document.body.scrollHeight");
+  let scrollAttempts = 0;
+  while (scrollAttempts < 10) {
+    // Limit scrolls to prevent infinite loops
+    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+    await delay(2500); // Wait for new content to load
+    let newHeight = await page.evaluate("document.body.scrollHeight");
+    if (newHeight === lastHeight) {
+      break;
+    }
+    lastHeight = newHeight;
+    scrollAttempts++;
+  }
+  console.log(chalk.gray("✅ Finished scrolling."));
+}
 
 export async function scrapeZepto() {
   const headless = await getHeadlessSetting();
@@ -98,33 +119,41 @@ export async function scrapeZepto() {
       console.log(chalk.blue(`Navigating to search URL: ${searchUrl}`));
       await page.goto(searchUrl, { waitUntil: "networkidle2" });
 
-      console.log(chalk.gray(`Waiting for search results for "${type}"...`));
+      console.log(
+        chalk.gray(`Waiting for initial search results for "${type}"...`)
+      );
       await page.waitForSelector(SELECTORS.productLink, { timeout: 15000 });
-      await delay(2000); // Wait for all products to render
+
+      // ✅ IMPLEMENTED INFINITE SCROLL
+      await autoScroll(page);
 
       const productsOnPage = await page.evaluate((selectors) => {
         const items = [];
         document.querySelectorAll(selectors.productLink).forEach((card) => {
           const href = card.getAttribute("href");
-          const title = card
-            .querySelector(selectors.productTitle)
-            ?.innerText.trim();
-          const image = card.querySelector(selectors.productImage)?.src;
-          const priceText = card
-            .querySelector(selectors.productPrice)
-            ?.innerText.trim();
-          const mrpText = card
-            .querySelector(selectors.productMrp)
-            ?.innerText.trim();
 
-          if (title && priceText && href) {
-            items.push({
-              title,
-              image,
-              price: priceText,
-              mrp: mrpText || priceText,
-              href: href,
-            });
+          // ✅ FIX: Validate URL structure before processing
+          if (href && href.includes("/pvid/")) {
+            const title = card
+              .querySelector(selectors.productTitle)
+              ?.innerText.trim();
+            const image = card.querySelector(selectors.productImage)?.src;
+            const priceText = card
+              .querySelector(selectors.productPrice)
+              ?.innerText.trim();
+            const mrpText = card
+              .querySelector(selectors.productMrp)
+              ?.innerText.trim();
+
+            if (title && priceText) {
+              items.push({
+                title,
+                image,
+                price: priceText,
+                mrp: mrpText || priceText,
+                href: href,
+              });
+            }
           }
         });
         return items;
