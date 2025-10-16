@@ -13,6 +13,7 @@ import { scrapeAmazon } from "./scrapers/amazon.js";
 import { scrapeFlipkart } from "./scrapers/flipkart.js";
 import { scrapeJiomart } from "./scrapers/jiomart.js";
 import { initializeSettings, getSetting } from "./utils/settings.js"; // ✅ Import getSetting
+import { scrapeZepto } from "./scrapers/zeptoScraper.js";
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ async function setupCronJob() {
         scrapeAmazon(pincode), // ✅ Pass pincode
         scrapeFlipkart(pincode), // ✅ Pass pincode
         scrapeJiomart(pincode), // ✅ Pass pincode
+        scrapeZepto(), // No pincode needed
       ]);
       console.log("✅ Scheduled scraping completed.");
     });

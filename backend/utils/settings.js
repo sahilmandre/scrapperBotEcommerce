@@ -42,6 +42,8 @@ const DEFAULT_SETTINGS = {
   SCRAPE_INTERVAL: 30, // minutes
   PRODUCT_TYPES: originalProductTypes,
   PINCODE: "452001", // ✅ ADD THIS NEW SETTING
+  ZEPTO_LATITUDE: 22.7196, // Default to Indore
+  ZEPTO_LONGITUDE: 75.8577, // Default to Indore
 };
 
 // Cache for frequently accessed settings
