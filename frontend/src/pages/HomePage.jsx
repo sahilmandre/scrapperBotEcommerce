@@ -9,6 +9,7 @@ const ScrapeButton = ({ platform, onScrape, loading }) => {
     // ✅ New Platform Style
     zepto: 'btn-info',
     instamart: 'btn-warning', // 1. Add color for the new button
+    bigbasket: 'btn-dark', 
     all: 'btn-success'
   };
   const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
@@ -96,6 +97,7 @@ const HomePage = () => {
             <ScrapeButton platform="jiomart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
 
             <ScrapeButton platform="zepto" onScrape={handleScrape} loading={scrapeMutation.isPending} />
+            <ScrapeButton platform="bigbasket" onScrape={handleScrape} loading={scrapeMutation.isPending} />
 
 
             {/* // Instamart Stopped we will develop it later */}

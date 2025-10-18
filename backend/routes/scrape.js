@@ -1,9 +1,10 @@
+// backend/routes/scrape.js
 import express from "express";
 import { scrapeFlipkart } from "../scrapers/flipkart.js";
 import { scrapeAmazon } from "../scrapers/amazon.js";
 import { scrapeJiomart } from "../scrapers/jiomart.js";
 import { scrapeZepto } from "../scrapers/zeptoScraper.js";
-// import { scrapeInstamart } from "../scrapers/swiggyInstamartScraper.js"; // Import the new scraper
+import { scrapeBigBasket } from "../scrapers/bigbasketScraper.js"; // Import the new scraper
 import { getSetting } from "../utils/settings.js";
 import chalk from "chalk";
 
@@ -28,41 +29,36 @@ router.get("/:platform", async (req, res) => {
     } else if (platform === "zepto") {
       console.log(chalk.magenta("⚡ Scraping Zepto..."));
       data = await scrapeZepto();
-    // } else if (platform === "instamart") {
-    //   // 1. Add new "instamart" condition
-    //   console.log(chalk.hex("#F78700")("🛒 Scraping Swiggy Instamart..."));
-    //   data = await scrapeInstamart();
-    
+    } else if (platform === "bigbasket") {
+      // Add new "bigbasket" condition
+      console.log(chalk.hex("#5E9400")("🧺 Scraping BigBasket..."));
+      data = await scrapeBigBasket(pincode);
     } else if (platform === "all") {
       console.log(chalk.cyan("🔁 Scraping all platforms..."));
-      // 2. Add the new scraper to the "all" execution
-      const [flipkartData, amazonData, jiomartData, zeptoData] =
+      const [flipkartData, amazonData, jiomartData, zeptoData, bigbasketData] = // Add bigbasketData
         await Promise.all([
           scrapeFlipkart(pincode),
           scrapeAmazon(pincode),
           scrapeJiomart(pincode),
           scrapeZepto(),
-          
-          // Instamart Stopped we will develop it later
-          // scrapeInstamart(),
+          scrapeBigBasket(pincode), // Add the new scraper to the "all" execution
         ]);
 
       return res.json({
         message: "✅ All scraping complete",
         results: {
-          // 3. Add to the results object
           flipkart: flipkartData.length,
           amazon: amazonData.length,
           jiomart: jiomartData.length,
           zepto: zeptoData.length,
-          // instamart: instamartData.length,
+          bigbasket: bigbasketData.length, // Add to the results object
         },
         total:
           flipkartData.length +
           amazonData.length +
           jiomartData.length +
-          zeptoData.length 
-          // instamartData.length,
+          zeptoData.length +
+          bigbasketData.length,
       });
     } else {
       return res.status(400).json({

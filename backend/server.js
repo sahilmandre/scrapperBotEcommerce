@@ -55,11 +55,10 @@ async function setupCronJob() {
     currentCronJob = cron.schedule(cronExpression, async () => {
       console.log("⏱️ Running scheduled scraping task...");
       await Promise.all([
-        scrapeAmazon(pincode), // ✅ Pass pincode
-        scrapeFlipkart(pincode), // ✅ Pass pincode
-        scrapeJiomart(pincode), // ✅ Pass pincode
-        scrapeZepto(), // No pincode needed
-
+        // scrapeAmazon(pincode), // ✅ Pass pincode
+        // scrapeFlipkart(pincode), // ✅ Pass pincode
+        // scrapeJiomart(pincode), // ✅ Pass pincode
+        // scrapeZepto(), // No pincode needed
         // Instamart Stopped we will develop it later
         // scrapeInstamart(), // 2. Add the new scraper to the scheduled job
       ]);
