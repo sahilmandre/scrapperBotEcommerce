@@ -12,7 +12,7 @@ const SELECTORS = {
     'button[class*="AddressDropdown___StyledMenuButton-sc-i4k67t-1"][id^="headlessui-menu-button-"]',
 
   // Selectors for the location pop-up
-  pincodeInput: 'input[placeholder="Search for area or street name"]',
+  pincodeInput: 'input[class*="AddressDropdown___StyledInput"]',
   firstLocationSuggestion:
     'li[class*="AddressDropdown___StyledMenuItem-sc-i4k67t-7"]:first-child',
 };
@@ -38,10 +38,11 @@ export async function scrapeBigBasket(pincode) {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--start-maximized",
+        "--window-position=0,0",
       ],
     });
     const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setViewport({ width: 1040, height: 1080 });
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     );
@@ -56,7 +57,7 @@ export async function scrapeBigBasket(pincode) {
     console.log(chalk.yellow("🔧 Setting delivery location..."));
 
     // Wait for page to fully load
-    await delay(3000);
+    await delay(2000);
 
     // Click the location dropdown button using the verified method
     await page.waitForSelector(SELECTORS.locationDropdownButton, {
@@ -88,24 +89,56 @@ export async function scrapeBigBasket(pincode) {
     }
     console.log(chalk.gray("Clicked location dropdown."));
 
-    // Wait for the input field to appear
-    await page.waitForSelector(SELECTORS.pincodeInput, {
-      visible: true,
-      timeout: 15000,
-    });
+    // Wait longer for dropdown to fully open
+    await delay(3000);
 
-    // Wait an additional 2 seconds as requested for everything to settle
-    console.log(chalk.gray("Waiting for input box to load..."));
-    await delay(2000);
+    // Try multiple selectors for the input field
+    let inputFound = false;
+    const inputSelectors = [
+      'input[class*="AddressDropdown___StyledInput"]',
+      'input[placeholder="Search for area or street name"]',
+      'input[type="text"]',
+    ];
 
-    // CORRECTED: Explicitly click the input to ensure it has focus before typing.
-    await page.click(SELECTORS.pincodeInput);
-    console.log(chalk.gray("Focused on the pincode input field."));
-    await delay(500); // Small delay after focusing
+    for (const selector of inputSelectors) {
+      try {
+        await page.waitForSelector(selector, { visible: true, timeout: 5000 });
+        await page.click(selector);
+        await delay(1000);
 
-    // Type the pincode slowly, with a 500ms delay between each character
-    await page.type(SELECTORS.pincodeInput, pincode, { delay: 500 });
-    console.log(chalk.gray(`Typed pincode "${pincode}" slowly.`));
+        // Use evaluate to directly set value and trigger events
+        await page.evaluate(
+          (sel, pin) => {
+            const input = document.querySelector(sel);
+            if (input) {
+              input.focus();
+              input.value = pin;
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          },
+          selector,
+          pincode
+        );
+
+        console.log(
+          chalk.gray(`Typed pincode "${pincode}" using selector: ${selector}`)
+        );
+        inputFound = true;
+        break;
+      } catch (e) {
+        console.log(
+          chalk.yellow(`Selector ${selector} failed, trying next...`)
+        );
+      }
+    }
+
+    if (!inputFound) {
+      throw new Error("Could not find input field with any selector");
+    }
+
+    // Wait for suggestions to load after typing
+    await delay(3000);
 
     // Wait for the suggestions list to appear
     await page.waitForSelector(SELECTORS.firstLocationSuggestion, {
