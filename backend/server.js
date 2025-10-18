@@ -59,7 +59,9 @@ async function setupCronJob() {
         scrapeFlipkart(pincode), // ✅ Pass pincode
         scrapeJiomart(pincode), // ✅ Pass pincode
         scrapeZepto(), // No pincode needed
-        scrapeInstamart(), // 2. Add the new scraper to the scheduled job
+
+        // Instamart Stopped we will develop it later
+        // scrapeInstamart(), // 2. Add the new scraper to the scheduled job
       ]);
       console.log("✅ Scheduled scraping completed.");
     });

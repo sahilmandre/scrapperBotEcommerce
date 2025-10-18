@@ -96,7 +96,10 @@ const HomePage = () => {
             <ScrapeButton platform="jiomart" onScrape={handleScrape} loading={scrapeMutation.isPending} />
 
             <ScrapeButton platform="zepto" onScrape={handleScrape} loading={scrapeMutation.isPending} />
-            <ScrapeButton platform="instamart" onScrape={handleScrape} loading={scrapeMutation.isPending} /> {/* 2. Add the new button */}
+
+
+            {/* // Instamart Stopped we will develop it later */}
+            {/* <ScrapeButton platform="instamart" onScrape={handleScrape} loading={scrapeMutation.isPending} /> 2. Add the new button */}
 
             <ScrapeButton platform="all" onScrape={handleScrape} loading={scrapeMutation.isPending} />
           </div>
